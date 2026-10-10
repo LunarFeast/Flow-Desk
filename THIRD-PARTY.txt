@@ -1,0 +1,84 @@
+Flow-Desk · 随行第三方资源清单
+（配套文件：根上那份 LICENSE。LICENSE 第二、三条的限制只管本仓库自己的程序与插件代码；
+ 这一份清单里点到的资源照它们各自的授权走，其中纸纹与字体明文允许分发、允许任意使用。）
+
+============================================================
+1. 纸纹六张 · CC0 1.0 Universal
+============================================================
+在仓库里的位置：src\pack\material\textures\
+  cotton.png、cotton2.png、kraft.png、kraft2.png、kraft-box.png、sketch.png
+作者与出处：@凉虾26 ——「抽屉26」第一期 · 高清无缝纸纹 x6（免费商用）
+授权：CC0 1.0 Universal（公共领域奉献）。可复制、可修改、可再分发、可商用，不需要许可，也不必署名
+      —— 这里记署名是作者自愿注明出处，不是许可条款要求的。
+随包情况：出包时这一层由 src\pack\build-app.mjs 从 src\pack\material 铺到运行目录的 material\，
+      程序第一次开机把要用的那几张落到用户的纹理那一格。
+
+============================================================
+2. 霞鹜文楷系列字体 · SIL Open Font License 1.1
+============================================================
+用法：程序不打包字体文件。界面与正文按「系统里已装上的字体名」引用
+      （中文族名 霞鹜文楷等宽 / 霞鹜文楷 屏幕阅读版，英文名 LXGW WenKai Mono / LXGW Screen Reader），
+      认名字那一段在 src\_shared\sh-font.js，字体文件本身要使用者自己从上游装。
+作者与出处：霞鹜（LXGW）—— 霞鹜文楷 / 霞鹜文楷等宽，上游仓库 https://github.com/lxgw/LxgwWenKai
+授权：SIL Open Font License 1.1（要点：可自由使用与再分发；不得单独卖字体本身；
+      Modified Version 不许用 Reserved Font Name；随字体分发时必须带上这份许可证原文）。
+      许可证全文见上游仓库的 OFL.txt。
+提醒：以后如果改成「把字体文件打进安装包」，就得同时把那份 OFL.txt 原样带上，
+      并按 OFL 的条款处理衍生字形 —— 这一条到时候要重新看，不能照现在这份清单抄。
+
+============================================================
+3. Electron 运行时 · MIT
+============================================================
+用法：程序跑在 Electron 上（开发依赖 electron ^37），发布出去的 exe 带着 Electron 的运行时。
+作者与出处：Electron 团队（GitHub / OpenJS Foundation）
+授权原文（照 Electron 发布包里那份 LICENSE 原样抄）：
+
+  Copyright (c) Electron contributors
+  Copyright (c) 2013-2020 GitHub Inc.
+
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+============================================================
+4. CodeMirror 5.65.18（内置代码编辑器）· MIT
+============================================================
+在仓库里的位置：src\_vendor\icode\icode.js —— esbuild 打出来的打包产物，顶部有一颗说明怎么重出
+      （npm i codemirror@5.65.18 esbuild@0.24.0，拿同目录 entry.js 那段 import 重跑一遍）；
+      外壳配色与中文文案在 src\_shared\sh-icode.js，不在这一份里。
+作者与出处：Marijn Haverbeke 与其他贡献者 —— https://codemirror.net/ （仓库 https://github.com/codemirror/codemirror5）
+授权：MIT。打包产物里没有带许可证正文（压缩时掉了），所以这一节就是本仓库带的那一份记录。
+      MIT 的条款与上面 Electron 那一段是同一篇正文（版权行换成 CodeMirror 自己的）：
+      可自由使用、修改、再分发，条件是保留这份版权声明与许可声明。
+
+============================================================
+5. 构建工具（不进发布包，只记账）
+============================================================
+· esbuild 0.24.0 —— MIT，只在 src\_vendor\icode\ 重出那份产物时用一次。
+· Windows 自带的 .csc.exe（.NET Framework 4 编译器）—— 首装那个壳用它现编，不随包分发。
+· MusicBee 桥插件（那一颗 mb_FlowDesk.dll）—— 源码是本程序自己写的，住插件仓库
+  Flow-Desk-plugin-Music-Remote 的 src\pack\plugin\FlowDeskBridge.cs（主仓从外41 起不再带这一棵源码），
+  用的是 MusicBee 公开的插件接口；MusicBee 本体是另一家（https://musicbee.com/）的软件，
+  本仓库不含它的任何文件。
+
+============================================================
+这一份清单什么时候要改
+============================================================
+· 换掉或新增任何随包资源（图、字体、第三方代码）；
+· 上面第 2 条那句「暂时只认字体名」改成打包字体文件时；
+· LICENSE 第三那条「暂时不放开分发」改口时 —— 两条要一起看，别只改一头。
