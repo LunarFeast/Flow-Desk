@@ -1,0 +1,1 @@
+{"main-capability":{"identifier":"main-capability","description":"第一版骨架只放核心那几条：壳的信息一问一答，别的通道还没搬过来。","local":true,"windows":["main"],"permissions":["core:default"]}}

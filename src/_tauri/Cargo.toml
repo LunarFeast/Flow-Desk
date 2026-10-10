@@ -1,0 +1,16 @@
+# Flow-Desk 的 Tauri 壳（外46 起这条线开工，目标是换掉 Electron 那一层）
+# 三元组必须走 GNU：这台机器没有微软那个链接器（link.exe 缺，而且 Git 自带一个同名的 link 抢在前面）。
+# 编译别直接喊 cargo —— 用同一格里的 build.mjs，它把 RUSTUP_HOME / CARGO_HOME / PATH 三样一起设死
+# （只改 PATH 的话 rustup 会按默认往 C 盘下一整套装具，2026-10-10 踩过一次，2.8 GB）。
+[package]
+name = "flowdesk"
+version = "2.0.0-alpha.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

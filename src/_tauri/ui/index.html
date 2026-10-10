@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>Flow-Desk 壳</title></head>
+<body style="font:14px/1.6 monospace;padding:24px">
+  <div>这一张是 Tauri 壳自己的页（骨架）。真正的界面还是 pages\ 里那一张生成的页，搬过来之后由它顶掉这一张。</div>
+  <div id="v">读壳信息…</div>
+  <script>
+    const api = window.__TAURI__ && window.__TAURI__.core;
+    (async () => {
+      const el = document.getElementById('v');
+      if (!api) { el.textContent = '还没接上壳的那一手（没带 withGlobalTauri）'; return; }
+      try { el.textContent = JSON.stringify(await api.invoke('外壳信息')); }
+      catch (e) { el.textContent = '问不动：' + e; }
+    })();
+  </script>
+</body></html>

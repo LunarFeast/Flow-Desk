@@ -10,3 +10,6 @@ export const 点名曲 = String(表.点名曲 || '');
 export const 工区 = 清(表.工区);
 export const 存档落点 = 清(表.存档落点);
 export const 探针沙盒 = 清(表.探针沙盒);
+export const Rust工具链 = 清(表.Rust工具链);
+export const Rust包缓存 = 清(表.Rust包缓存);
+export const Rust链接件 = 清(表.Rust链接件);

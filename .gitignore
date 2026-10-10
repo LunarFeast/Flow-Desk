@@ -69,6 +69,8 @@ src/_wnw/wnw-kernel.js
 src/_wcustom/wnw-custom-kernel.js
 #    首装那颗壳是 sfx.cs 现编出来的中间产物（publish 发现它比源文件旧会自己重编），不进仓
 src/pack/sfx-stub.exe
+#    Tauri 那棵壳的编译格（cargo 的 target，两个 G 起，跟 node_modules 同一待遇）
+src/_tauri/target/
 #    外39 第 6 条口径：这份是写给开发自己看的样例说明（数据树长什么样），没有一行代码读它，
 #    按文档处理 —— 盘上留着，不进仓。
 src/tools/data-树形示例.txt
