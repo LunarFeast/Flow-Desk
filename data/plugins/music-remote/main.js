@@ -11,14 +11,14 @@
         手动选的歌词文件永远算数。文本一律先嗅探：开头 <?xml / <tt 按 TTML，[mm:ss 按 LRC，都不像当纯文本。
         ttml 是逐字歌词，三行 = 原文 / 注音（transliteration，没有就退到 x-roman）/ 翻译。
         有时间戳就逐字卡拉OK：一个字从 0% 填到 100%，未唱的那一档走亮度尺（浅），唱过的保持彩色。
-   登记走加载器：说明书里 type 写的是 tool，它 import 完把这份 default 交给宿主的 registerTool()
+   登记走加载器：插件清单里 type 写的是 tool，它 import 完把这份 default 交给宿主的 registerTool()
         （WNW 挂成停靠/标签视图，Flow-Desk 挂成桌面卡片）—— 组件自己一个字都不调注册。
         卡片 = 歌名·艺人 + 四按钮 + 进度条 + 当前句，⛶ 才出整页。
    ============================================================ */
 
 /* ES module：宿主能力全从加载器给的 ctx 里取，K 在 init(ctx) 里落定。
    h()/toast()/State/Phrase/musApp 沿用原来那几个名字，只做一层转发，正文一个字不用改。
-   musApp 就是 ctx.app —— 说明书 appChannels 里点名的那十四个媒体通道由宿主发下来，
+   musApp 就是 ctx.app —— 插件清单 appChannels 里点名的那十四个媒体通道由宿主发下来，
    宿主那把尺（_shared/sh-load.js 的 packApp）自己会「本框 → 父框 → 顶框」往上找桥，
    所以这个卡在 Flow-Desk 桌面上、和在 Flow-Desk 罩着开的 Why Not Write 停靠里，连的是同一个桥。 */
 let K = null;
@@ -2259,7 +2259,7 @@ function musDirField(){
 
 /* ---------- 九、监听插件 ----------
    MusicBee 本体一个字都不往系统的媒体控件写，所以光靠 SMTC 永远监不到它 —— 得给它装一个插件。
-   这个按钮做的事：让主进程去找 MusicBee 装在哪，把**本包里**那个 mb_FlowDesk.dll（说明书
+   这个按钮做的事：让主进程去找 MusicBee 装在哪，把**本包里**那个 mb_FlowDesk.dll（插件清单
    assets.bridge 点的名，`landAsset` 读的是活的 data\components\music-remote\，resources\app\plugin\
    那一份只是这棵树上还没有组件文件夹时的出厂兜底）拷进它的 Plugins\（同名先留 .bak），
    装完重启 MusicBee 生效。
