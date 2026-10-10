@@ -3,7 +3,7 @@
   "name": "日程",
   "author": "Flow-Desk",
   "source": "内置出厂",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha+build.94e3298",
   "minShell": "1.0.0",
   "host": [
     "fd"
