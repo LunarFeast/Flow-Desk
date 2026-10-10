@@ -1,0 +1,50 @@
+{
+  "id": "music-remote",
+  "name": "音乐遥控器",
+  "author": "Flow-Desk",
+  "source": "内置出厂",
+  "version": "1.0.0",
+  "minShell": "1.0.0",
+  "host": [
+    "fd",
+    "wnw"
+  ],
+  "entry": [
+    "main.js"
+  ],
+  "order": 80,
+  "icon": "♫",
+  "type": "tool",
+  "desc": "监听系统正在放的歌，配同目录歌词逐句跟",
+  "dataKeys": [],
+  "kvKeys": [],
+  "stateKeys": ["music-"],
+  "appChannels": [
+    "mediaState",
+    "mediaOn",
+    "mediaPlayers",
+    "mediaOnPlayers",
+    "mediaCmd",
+    "mediaFlag",
+    "mediaFile",
+    "mediaFolder",
+    "mediaDirHandle",
+    "mediaDirPick",
+    "mediaDirSet",
+    "mediaPin",
+    "mediaBridge",
+    "mediaHold",
+    "mediaRelease",
+    "volGet",
+    "volSet",
+    "volMute",
+    "volOn",
+    "label"
+  ],
+  "settings": true,
+  "assets": {
+    "watcher": "smtc-watcher.ps1",
+    "volwatcher": "vol-watcher.ps1",
+    "bridge": "mb_FlowDesk.dll"
+  }
+}
