@@ -11,7 +11,8 @@
      ② 七棵插件仓各自独立：铺一遍，内容和仓里那一份逐字节一样就整棵跳过，不一样才 add/commit
      ③ 每棵取自己那一笔的短哈希，拼成 主.次.补丁-预发布+build.<那棵的短哈希>，本地打 tag
      ④ 回主程序这一棵：号当环境变量传进打包（FD_BUILD），源码一个字不改、不临时写文件、不回滚；
-        每一家的号一并传进去（FD_PLUGINS）—— 说明书里那一格 version 是老版本，打包这一趟不写它也不取它
+        每一家的号一并传进去（FD_PLUGINS）—— 那一串取自各家清单文件里自己那一格 version：
+        这一趟真改过代码的那几家，号在 ② 之后已经写回清单（见下面「每一家的号写回清单」那一段）
      ⑤ 生成、出包任何一步失败 → 当场终止，一律不推
      ⑥ 只有全套跑成了才推，而且只推这一趟真动过的棵；哪一棵推砸了就报是哪一棵
    主程序和插件相互独立：各用各仓的哈希，互不牵（他原话）。
@@ -83,6 +84,33 @@ for(const job of REPOS){
             sha:后, 号: 后 ? 底号() + '+build.' + 后 : '' });
 }
 
+/* ---------- 每一家的号写回清单（他 2026-10-10 追问「关于里七家显示的还是 1.0.0」之后补的这一手）----------
+   清单文件 data\plugins\<id>\manifest.json 里那一格 version 是唯一出处：界面上「关于」读它，
+   发布物里那一份 zip 的清单也写它，两头必须是同一个串。三种情况：
+     · 这一趟真改了这一家的代码 -> 号 = 底号 + '+build.' + 代码那一笔的短哈希（上面 ② 已经拼好），写回清单；
+     · 清单里还挂着当初随手填的占位死号（串上没有 +build. 尾巴）-> 这一趟给它补上真号；
+     · 代码没动、号已经是真的 -> 照它清单里那一串，这一趟一个字不碰。
+   为什么没动就不刷：号一刷，上面逐字节比那一步（会动吗）下一趟永远比出不一样，七棵轮着空提交。
+   为什么写回清单要另起一笔：号里那枚哈希指的是代码停在哪一笔，把号写进清单的那一笔不能算在自己头上 ——
+   所以 tag 钉在代码那一笔（r.sha）上，不钉在记号那一笔上。 */
+const 清单路 = id => path.join(TREE, 'data', 'plugins', id, 'manifest.json');
+function 号写回清单(r){
+  const p = 清单路(r.id), 原 = fs.readFileSync(p, 'utf8'), m = JSON.parse(原);
+  const 老 = String(m.version || '');
+  const 号 = (r.号 && (r.动了 || !/\+build\./.test(老))) ? r.号 : 老;
+  r.号 = 号 || r.号;
+  if(!号 || 号 === 老) return;
+  m.version = 号;
+  fs.writeFileSync(p, JSON.stringify(m, null, 2) + (/\r?\n$/.test(原) ? '\n' : ''), 'utf8');   /* 照原样两空格缩进、LF 行尾写回，不顺手改排版 */
+  const args = ['src/_build/plugin-repos.mjs', '--only=' + r.id, '--out=' + OUT,
+    '--msg=' + r.中文 + ' · 发布记号 ' + 号 + '（把这一趟的号写进清单，代码一个字没改）'];
+  P('\n$ node ' + args.join(' '));
+  try{ process.stdout.write(execFileSync(process.execPath, args, { cwd:TREE, encoding:'utf8', stdio:['ignore','pipe','pipe'] })); }
+  catch(e){ 停(r.repo + ' 这一棵把号写进清单那一笔没落成：' + String((e && (e.stdout || e.stderr)) || (e && e.message) || e).replace(/\r?\n/g, ' ').slice(0, 500)); }
+  r.动了 = true;
+}
+for(const r of 家) 号写回清单(r);
+
 /* ---------- ③ 号：打包一次，尾巴那枚短哈希就变一次（他 2026-10-10 定的口径）----------
    这一笔是这趟打包自己的记号：--allow-empty，源码一个字不改、不写临时文件、不回滚。
    tag 钉在它身上 —— 打包 ↔ 提交 ↔ tag ↔ 号，四样一一对应。
@@ -104,7 +132,7 @@ if(DRY){ P('\n（--dry：什么都没写、没提交、没打包、没推。）'
 /* ---------- ④ 号当环境变量传进打包：源码不改、不写临时文件 ---------- */
 const env = Object.assign({}, process.env, {
   FD_BUILD: 主短,
-  /* 每一家这一趟带的是哪一串号：那一家自己那一笔的哈希拼出来的，不取说明书里那一格 version */
+  /* 每一家这一趟带的是哪一串号：取自那一家清单文件里自己那一格 version（真改过代码的那几家，号在上面已经写回清单） */
   FD_PLUGINS: JSON.stringify(家.filter(r => r.号).reduce((m, r) => {
     m[r.id] = { version: r.号, 中文: r.中文 }; return m;
   }, {}))
@@ -154,19 +182,19 @@ P('\n收旧版本（只留最新那一份）：');
 收一处(path.join(TREE, 'dist'), /^Flow_Desk_setup_[\d][\w.+-]*\.exe$|^Flow_Desk_payload_[\d][\w.+-]*\.zip$/, '发布物 dist\\');
 
 /* ---------- ⑤ 本地打 tag：号钉在哪一笔上，一一对应 ---------- */
-function 打tag(dir, name, 谁){
+function 打tag(dir, name, 谁, 钉在){
   let 已有 = '';
   try{ 已有 = git(dir, ['rev-parse', '--short', name]); }catch(e){}
-  const 这笔 = git(dir, ['rev-parse', '--short', 'HEAD']);
+  const 这笔 = git(dir, ['rev-parse', '--short', 钉在 || 'HEAD']);
   if(已有 && 已有 !== 这笔) 停(谁 + ' 这一棵上已经有一枚同名 tag ' + name + '，钉在另一笔（' + 已有 + '）上。换个号或先把那枚删了，别让它指歪。');
   if(已有 === 这笔){ P('  ' + 谁 + ' · tag ' + name + ' 已经在这一笔上，不再打一遍'); return false; }
-  git(dir, ['tag', '-a', name, '-m', 谁 + ' ' + name, 'HEAD']);
+  git(dir, ['tag', '-a', name, '-m', 谁 + ' ' + name, 钉在 || 'HEAD']);
   P('  ' + 谁 + ' · 本地打了 tag ' + name);
   return true;
 }
 if(!NOPUSH){
   打tag(TREE, 'v' + 主号, 'Flow-Desk');
-  for(const r of 家) if(r.动了) r.新tag = 打tag(r.dir, 'v' + r.号, r.repo);
+  for(const r of 家) if(r.动了) r.新tag = 打tag(r.dir, 'v' + r.号, r.repo, r.sha);   /* 钉在代码那一笔，不钉在记号那一笔 */
 
   /* ---------- ⑥ 推：只推这一趟真动过的棵；砸了就报是哪一棵 ---------- */
   const 推 = (dir, 谁, 有东西) => {

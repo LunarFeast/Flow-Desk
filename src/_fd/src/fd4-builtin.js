@@ -2384,9 +2384,9 @@ function aboutRows(box){
   window.FD_APP.aboutInfo().then(r => {
     if(!r || !r.ok){ put((r && r.msg) || '版本信息没读到'); return; }
     const v = r.versions || {};
-    /* 装着的每一家一行，号取运行时真正加载的那一份说明书（发布那一趟已经把它换成出门那一次的号）；
-       没写号的那一格照实说「说明书没写号」，不编一个数出来。 */
-    const 家 = (r.packs || []).map(p => p.name + '　' + (p.version || '说明书没写号')).join('\n');
+    /* 装着的每一家一行，号取运行时真正加载的那一份清单文件（发布那一趟已经把真号写回它）；
+       没写号的那一格照实说「清单里没写号」，不编一个数出来。 */
+    const 家 = (r.packs || []).map(p => p.name + '　' + (p.version || '清单里没写号')).join('\n');
     put(SetCache.about = 'Flow-Desk ' + (v.fd || '?') + '　为写 ' + kernelVersion('wnw', '?') +
       '　声笔输入法练习 ' + kernelVersion('rp', '没装') + '\n数据在这儿：' + r.data +
       '\n页面在这儿：' + r.pages + '（换版换这一层，数据那一层一个字都不动）' +
