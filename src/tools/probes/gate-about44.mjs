@@ -83,7 +83,7 @@ function 全扫(认){
 台.判('主进程把装着的一家一家递出去（取的是运行时真正加载的那份说明书）',
   /packs:家/.test(主) && /packScan\(\)\.packs\.filter\(p => p\.manifest\)/.test(主));
 台.判('没有说明书的那一格不列（不编一个号出来）', /filter\(p => p\.manifest\)/.test(主));
-台.判('关于那一行把每一家列出来，没写号的照实说', 页.includes('r.packs') && 页.includes('说明书没写号'));
+台.判('关于那一行把每一家列出来，没写号的照实说', 页.includes('r.packs') && 页.includes('清单里没写号'));
 台.判('压零卖的包时把说明书那一格换成发布传进来的号（号只有一处真身）',
   /function packZip\(p, 用了号\)/.test(公) && /Object\.assign\(\{\}, m, \{ version: 用了号 \}\)/.test(公));
 台.判('货架清单和安装标记里那一份号同源（都吃传进来的那一串）', /version: 出/.test(公) && /plugins: shelf\.map/.test(公));
