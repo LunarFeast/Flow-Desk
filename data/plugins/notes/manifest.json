@@ -1,0 +1,23 @@
+{
+  "id": "notes",
+  "name": "你的便签",
+  "author": "Flow-Desk",
+  "source": "内置出厂",
+  "version": "1.0.0-alpha+build.4f2219e",
+  "minShell": "1.0.0",
+  "host": [
+    "fd"
+  ],
+  "entry": [
+    "main.js"
+  ],
+  "order": 30,
+  "icon": "▤",
+  "type": "widget",
+  "desc": "随手记，卡片一行一条，⛶ 看全部",
+  "first": 20,
+  "dataKeys": [
+    "notes.json"
+  ],
+  "kvKeys": []
+}
