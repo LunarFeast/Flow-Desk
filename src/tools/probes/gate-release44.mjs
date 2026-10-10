@@ -52,10 +52,10 @@ const pub = rd('src/pack/publish.mjs');
 台.判('被当零件 import 时命令行那一段一个字都不跑', /if\(被当命令跑\)\{/.test(rep) && /const 被当命令跑 = process\.argv\[1\]/.test(rep));
 /* Windows 上 import 绝对路径要写成 file:// URL，直接给 D:\... 会当场抛协议不对 */
 const 那颗URL = pathToFileURL(path.resolve('D:/Programs/Flow-Desk/src/_build/plugin-repos.mjs')).href;
-台.判('这一条不是白钉的：import 它一次，屏幕上不该冒出七家的账', (() => {
-  const out = execFileSync(process.execPath, ['-e', 'import(' + JSON.stringify(那颗URL) + ').then(m => console.log("只出零件 " + m.REPOS.length))'],
+台.判('这一条不是白钉的：import 它一次，只报几家几棵，不报仓名', (() => {
+  const out = execFileSync(process.execPath, ['-e', 'import(' + JSON.stringify(那颗URL) + ').then(m => console.log("登记 " + m.家.length + " 家 · 要铺 " + m.REPOS.length + " 棵"))'],
     { cwd:'D:/Programs/Flow-Desk/', encoding:'utf8' });
-  return out.trim() === '只出零件 7' && !/Flow-Desk-plugin-/.test(out);
+  return out.trim() === '登记 7 家 · 要铺 1 棵' && !/Flow-Desk-plugin-/.test(out);
 })());
 
 台.题('四、插件清单里那一格老版本不再当成打包取的号');

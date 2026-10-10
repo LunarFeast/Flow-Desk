@@ -11,7 +11,7 @@
         —— 那一格是「改代码」直接改的地方，换回出厂那一份就是弄丢用户写的东西；
      四、旧口径那几句话（一个插件都不带 / 一棵都不进 / 不许带插件代码）在所有说明和报错里消失；
      五、真跑一趟 publish --dry：树里报出的家数与货架上的包数对得上，且一个字节没写；
-     六、盘上两格逐字节一致，且每一家那个号在插件仓里都有一枚 tag 钉在号里那笔提交上。
+     六、盘上两格逐字节一致，且每一家那个号都有一枚 tag 钉在号里那笔提交上（六家在主仓这一棵，为写在自己那棵）。
         这一节是 2026-10-10 量出来两笔旧账之后补的：开发树原版那一格还挂着占位死号 1.0.0；
         四棵插件仓一枚 tag 都没打过 —— 那是 --dry 漏判那一趟把清单写了、tag 却没打，
         后来真跑那趟见「号已是真的、代码又没动」就一字不碰，缺口一直留着。
@@ -19,7 +19,7 @@
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { rd, 记账, ROOT } from './lib-slice.mjs';
-import { OUT } from '../../_build/plugin-repos.mjs';
+import { OUT, 家 } from '../../_build/plugin-repos.mjs';
 
 const 台 = 记账('gate-pack46');
 const pub = rd('src/pack/publish.mjs');
@@ -79,13 +79,7 @@ const 货架 = (报.match(/货架 ([0-9]+) 个包/) || [])[1];
 台.判('树里那几家与货架那几个包同一个数（' + 货架 + '）', !!m && !!货架 && m[1] === 货架);
 台.判('--dry 一个字节没写：那一趟自己说了（没落盘）', 报.includes('（没落盘）'));
 
-台.题('六、盘上两格逐字节一致，每一家的号在插件仓里都有一枚 tag 钉着');
-const 仓名 = {
-  'notes': 'Flow-Desk-plugin-Notes', 'schedule': 'Flow-Desk-plugin-Schedule',
-  'your-sentences': 'Flow-Desk-plugin-Your-Sentences', 'music-remote': 'Flow-Desk-plugin-Music-Remote',
-  'singbit-input-practice': 'Flow-Desk-plugin-Singbit-Input-Practice',
-  'why-not-write': 'Flow-Desk-plugin-Why-Not-Write', 'wnw-custom': 'Flow-Desk-plugin-WNW-Custom'
-};
+台.题('六、盘上两格逐字节一致，每一家的号都有一枚 tag 钉着（六家在主仓这一棵，为写在自己那棵）');
 /* 逐件比字节（不比目录时间戳）：两格本来就该是同一批字节 */
 function 差件(a, b){
   let n = 0;
@@ -97,18 +91,20 @@ function 差件(a, b){
   }
   return n;
 }
-for(const id of Object.keys(仓名)){
+for(const j of 家){
+  const id = j.id;
   const 活 = ROOT + 'data/plugins/' + id, 原 = ROOT + 'data/plugins-factory/' + id;
   let 号 = '';
   try{ 号 = String(JSON.parse(fs.readFileSync(活 + '/manifest.json', 'utf8')).version || ''); }catch(e){ 号 = '（读不到）'; }
   台.判(id + ' 两格逐字节一致（现在 ' + 号 + '）', 差件(活, 原) === 0);
   const 尾 = 号.split('+build.')[1] || '';
+  /* 带仓的那一枚 tag 在它自己那棵里；并回主仓那六家的 tag 就在主仓这一棵（合并取历史时跟着进来） */
+  const 在 = j.仓 ? OUT + '/' + j.仓 : ROOT;
   let 钉 = '';
   try{
-    钉 = execFileSync('git', ['rev-parse', '--short', 'v' + 号 + '^{commit}'],
-      { cwd: OUT + '/' + 仓名[id], encoding: 'utf8' }).trim();
+    钉 = execFileSync('git', ['rev-parse', '--short', 'v' + 号 + '^{commit}'], { cwd: 在, encoding: 'utf8' }).trim();
   }catch(e){ 钉 = ''; }
-  台.判(仓名[id] + ' 有 tag v' + 号 + ' 且钉在 ' + (尾 || '（号里没有短哈希）') + '（tag 指向：' + (钉 || '没有这枚 tag') + '）', !!尾 && 钉 === 尾);
+  台.判((j.仓 || '主仓这一棵') + ' 有 tag v' + 号 + ' 且钉在 ' + (尾 || '（号里没有短哈希）') + '（tag 指向：' + (钉 || '没有这枚 tag') + '）', !!尾 && 钉 === 尾);
 }
 
 台.收尾();

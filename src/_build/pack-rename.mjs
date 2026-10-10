@@ -1,6 +1,6 @@
 /* 插件 id 改名那一张表（同步 GitHub 第 3 条 · 2026-10-09 他定「改程序、代码命名（本体名字和各处引用）」）
    ------------------------------------------------------------
-   为什么改：包 id 就是这一家在 GitHub 上的仓库名（去掉 Flow-Desk-plugin- 那截前缀），
+   为什么改：包 id 对齐成当初那七家插件仓的仓库名（去掉 Flow-Desk-plugin- 那截前缀；外46 四起六家并回主仓，id 一个字不改），
    从前 id 和仓库名各一套（your-notes ↔ Notes、to-music ↔ Music-Remote、rime-practice ↔ Singbit-Input-Practice），
    看 issue、看提交、找包三处要各认各的名字。这一张表把 id 对齐过去；
    your-sentences、schedule、why-not-write 本来就已经对得上，所以不在表里。

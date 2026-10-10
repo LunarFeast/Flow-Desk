@@ -8,7 +8,7 @@
    整条撤了，更新就是双击一颗新的 Flow_Desk_setup_<版本号>.exe，指到同一棵树上点「覆盖升级」。
    那一颗自己带着一套读 zip 的代码（src\pack\sfx.cs 里的 Extract），不回头吃这一份。
 
-   包由谁写：插件那七家由 src\_build\plugin-repos.mjs 铺、publish 压成 dist\plugins\<id>.zip。
+   包由谁写：publish 从插件那一格（data\plugins\<id>\）现压成 dist\plugins\<id>.zip —— 六家的代码就在主仓这一棵里，只有为写那一家还铺到旁边那一棵。
    这一份只认两种条目：存储（method 0）和 deflate（method 8），压包那两头出的就是这两种。
    ============================================================ */
 const zlib = require('zlib');

@@ -1,10 +1,18 @@
 /* ============================================================
-   插件分仓：一家插件铺一棵仓
+   插件这一摊：到外46 四为止，只剩「为写」一家还单独一棵仓
    ------------------------------------------------------------
-     node src/_build/plugin-repos.mjs --dry                    只报每家的清单和体积，不落盘、不动 git
-     node src/_build/plugin-repos.mjs                          铺 + 提交 + 挂远端（七家全跑）
-     node src/_build/plugin-repos.mjs --only=music-remote,notes 只跑点到的那几家（写插件 id）
-     node src/_build/plugin-repos.mjs --out=<目录>             换铺的地方
+     node src/_build/plugin-repos.mjs --dry                 只报清单和体积，不落盘、不动 git
+     node src/_build/plugin-repos.mjs                       铺 + 提交 + 挂远端（只跑带仓那一家）
+     node src/_build/plugin-repos.mjs --only=notes          只跑点到的那几家（不带仓的那几家这一趟什么都不做）
+     node src/_build/plugin-repos.mjs --out=目录            换铺的地方
+
+   外46 四（他 2026-10-11 定「仓并成 2 棵这条走」）：其余六家带着自己那几笔提交历史并回了主仓那一棵，
+   代码就在这棵树里改、就在这棵树里提交（插件那一格进仓了，规矩在 .gitignore 第七、八两节）。
+   这一份以里只干两件事：
+     一、登记七家各自占哪些路径 —— 名单只此一份，发布脚本和探针都拿它算，别处不许另抄一份对应表；
+     二、把带仓的那一家（为写）从开发这棵树按原路径铺进它自己那一棵、提交、挂远端。
+   不带仓的那六家照旧登着：发布脚本要拿那几行路径算「这一家最后动过的是哪一笔」，
+   不算这一就不知道该给哪一家刷号、该往哪一格写号。
 
    形状：仓库里的路径跟主仓一模一样（data\plugins\notes\main.js 还是这一串），
    所以「这一家改了没有」拿两棵树逐字节比就得出，不需要谁再维护第二份对应表。
@@ -15,11 +23,7 @@
    投不到任何信箱），所以公开面上读不出真邮箱。这台机器的 git 全局配置一个字不动。
 
    提交形状（他 2026-10-10 定）：正常多条提交，不压成单颗、不 amend、不 force-push ——
-   细粒度留着方便查 bug。这一家的内容和主仓那一棵逐字节比得出有没有动，没动就不提交。
-
-   推不推：这一台只管「铺 + 提交 + 挂远端」，推那一步在 src\_build\release.mjs 里
-   （打包成功了才推，哪一棵推砸了就报哪一棵）。凭据还是不经过我的手：用的是这台机器
-   已经配好的 git credential helper，脚本只喊 git push，不读、不写、不存任何令牌。
+   细粒度留着方便查 bug。这一家的内容和主仓那一份逐字节比得出有没有动，没动就不提交。
    ============================================================ */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -44,20 +48,23 @@ const GIT_MAIL = 'noreply@invalid';                           /* 保留域，投
 const pack = id => 'data/plugins/' + id;                   /* 一家插件整格 */
 const COMMON = ['LICENSE', 'THIRD-PARTY.txt'];                /* 两份声明跟着走：仓库没声明 = 默认保留所有权利 */
 
-export const REPOS = [
-  { id:'notes',                 repo:'Flow-Desk-plugin-Notes',                 中文:'你的便签',   from:[pack('notes')] },
-  { id:'schedule',              repo:'Flow-Desk-plugin-Schedule',              中文:'日程',       from:[pack('schedule')] },
-  { id:'your-sentences',        repo:'Flow-Desk-plugin-Your-Sentences',        中文:'你的句子',   from:[pack('your-sentences')] },
-  { id:'music-remote',          repo:'Flow-Desk-plugin-Music-Remote',          中文:'音乐遥控器', from:[pack('music-remote'),
+export const 家 = [
+  { id:'notes',                  中文:'你的便签',       仓:'', from:[pack('notes')] },
+  { id:'schedule',               中文:'日程',           仓:'', from:[pack('schedule')] },
+  { id:'your-sentences',         中文:'你的句子',       仓:'', from:[pack('your-sentences')] },
+  { id:'music-remote',           中文:'音乐遥控器',     仓:'', from:[pack('music-remote'),
       'src/pack/plugin/FlowDeskBridge.cs', 'src/pack/plugin/MBHeader.cs', 'src/pack/plugin/build-plugin.ps1'] },
-  { id:'singbit-input-practice',repo:'Flow-Desk-plugin-Singbit-Input-Practice',中文:'声笔输入法练习', from:[pack('singbit-input-practice'),
+  { id:'singbit-input-practice', 中文:'声笔输入法练习', 仓:'', from:[pack('singbit-input-practice'),
       'src/_build/rp-kernel.mjs', 'src/_build/rp-base.html',
       'src/_build/p1.js', 'src/_build/p2.js', 'src/_build/p3.js', 'src/_build/p4.js', 'src/_build/p5.js', 'src/_build/p6.js'] },
-  { id:'why-not-write',         repo:'Flow-Desk-plugin-Why-Not-Write',         中文:'为写',       from:[pack('why-not-write'),
-      'src/_wnw/build-kernel.mjs', 'src/_wnw/src'] },
-  { id:'wnw-custom',            repo:'Flow-Desk-plugin-WNW-Custom',            中文:'组件定制',   from:[pack('wnw-custom'),
+  { id:'wnw-custom',             中文:'组件定制',       仓:'', from:[pack('wnw-custom'),
       'src/_wcustom/build-kernel.mjs', 'src/_wcustom/src'] },
+  { id:'why-not-write',          中文:'为写',           仓:'Flow-Desk-plugin-Why-Not-Write', from:[pack('why-not-write'),
+      'src/_wnw/build-kernel.mjs', 'src/_wnw/src'] },
 ];
+
+/* 只有带仓那一家需要铺到旁边那一棵；不带仓的六家就在主仓这棵树里提交 */
+export const REPOS = 家.filter(j => j.仓);
 
 /* ---------- 清单：目录整格收下（点开头的、产物、构建输出不要） ---------- */
 const SKIP_NAME = /^\.|\.zip$/;
@@ -80,7 +87,7 @@ export function filesOf(job){
   const set = new Set(COMMON);
   for(const rel of job.from){
     const got = listFrom(rel);
-    if(!got) throw new Error(job.repo + ' 要收的那一格不存在：' + rel);
+    if(!got) throw new Error(job.仓 + ' 要收的那一格不存在：' + rel);
     for(const f of got) set.add(f);
   }
   return [...set].sort();
@@ -177,7 +184,7 @@ for(const job of REPOS){
   catch(e){ 报错.push(e.message); continue; }
   const bytes = list.reduce((n, r) => n + fs.statSync(path.join(TREE, r)).size, 0);
   const bad = scanLeaks(list);
-  if(bad.length){ 报错.push(job.repo + ' 里有 ' + bad.length + ' 处私人东西：\n      ' + bad.slice(0, 8).join('\n      ')); continue; }
+  if(bad.length){ 报错.push(job.仓 + ' 里有 ' + bad.length + ' 处私人东西：\n      ' + bad.slice(0, 8).join('\n      ')); continue; }
   计划.push({ job, list, bytes });
 }
 if(报错.length){
@@ -186,11 +193,11 @@ if(报错.length){
 }
 
 for(const { job, list, bytes } of 计划){
-  const dir = path.join(OUT, job.repo);
-  const url = 'https://github.com/LunarFeast/' + job.repo + '.git';
+  const dir = path.join(OUT, job.仓);
+  const url = 'https://github.com/LunarFeast/' + job.仓 + '.git';
   const kb = (bytes / 1024).toFixed(1);
   if(DRY){
-    console.log(job.repo + ' · ' + list.length + ' 份 · ' + kb + ' KB · 铺到 ' + dir);
+    console.log(job.仓 + ' · ' + list.length + ' 份 · ' + kb + ' KB · 铺到 ' + dir);
     for(const f of list) console.log('    ' + f);
     continue;
   }
@@ -204,7 +211,7 @@ for(const { job, list, bytes } of 计划){
   let 提交 = '没变化';
   try{ git(dir, ['diff', '--cached', '--quiet']); }
   catch(e){
-    const 头 = MSG || job.repo + ' · 同步主仓这一份';
+    const 头 = MSG || job.仓 + ' · 同步主仓这一份';
     const 身 = [
       头, '',
       '这一棵是 Flow-Desk 的「' + job.中文 + '」那一家，内容是从主仓那棵树里按原路径挑出来的 ' + list.length + ' 份（' + kb + ' KB）：',
@@ -220,7 +227,7 @@ for(const { job, list, bytes } of 计划){
   try{ git(dir, ['remote', 'add', 'origin', url]); }
   catch(e){ git(dir, ['remote', 'set-url', 'origin', url]); }
   const sha = 老 || hasHead(dir) ? git(dir, ['rev-parse', '--short', 'HEAD']) : '（空）';
-  console.log(job.repo.padEnd(38) + ' ' + String(list.length).padStart(3) + ' 份 · ' + kb.padStart(9) + ' KB · ' + 提交 +
+  console.log(job.仓.padEnd(38) + ' ' + String(list.length).padStart(3) + ' 份 · ' + kb.padStart(9) + ' KB · ' + 提交 +
     (del.length ? ' · 删掉多出来的 ' + del.length + ' 份' : '') + ' · ' + sha);
 }
 if(DRY) console.log('\n（--dry：什么都没写。七家合计 ' + 计划.reduce((n, p) => n + p.list.length, 0) + ' 份）');
