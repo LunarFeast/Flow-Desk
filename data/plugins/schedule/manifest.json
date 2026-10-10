@@ -1,0 +1,28 @@
+{
+  "id": "schedule",
+  "name": "日程",
+  "author": "Flow-Desk",
+  "source": "内置出厂",
+  "version": "1.0.0",
+  "minShell": "1.0.0",
+  "host": [
+    "fd"
+  ],
+  "entry": [
+    "main.js"
+  ],
+  "order": 50,
+  "icon": "▦",
+  "type": "widget",
+  "desc": "五层日程树 + 按月画甘特的日历",
+  "first": 10,
+  "dataKeys": [
+    "schedule.json"
+  ],
+  "settings": true,
+  "kvKeys": [
+    "weekdayStyle",
+    "weekStart",
+    "showWeek"
+  ]
+}
