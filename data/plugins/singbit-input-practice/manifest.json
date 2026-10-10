@@ -1,0 +1,20 @@
+{
+  "id": "singbit-input-practice",
+  "name": "声笔输入法练习",
+  "author": "Flow-Desk",
+  "source": "内置出厂",
+  "version": "1.0.0-alpha+build.37c45ae",
+  "minShell": "1.0.0",
+  "host": [
+    "fd"
+  ],
+  "entry": [
+    "main.js"
+  ],
+  "order": 10,
+  "icon": "⌨",
+  "type": "widget",
+  "desc": "一张玻璃卡，点了就在这一页里把声笔输入法练习打开",
+  "first": 40,
+  "dataKeys": []
+}
