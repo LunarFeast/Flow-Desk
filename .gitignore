@@ -64,7 +64,7 @@ src/tools/probes/*.wav
 #    公开这棵只在生成的时候读它一次 —— 让它进仓就等于把为写的源码整包推上去。
 src/_wnw/wnw-kernel.js
 #    外39（组件定制分离）：同一待遇 —— 这一颗由 src\_wcustom\build-kernel.mjs 从那四份源码拼出来，
-#    源码住的是 Flow-Desk-plugin-WNW-Custom 那一棵。主仓里既留源码又留产物就是两份同一个东西，
+#    源码就在这一棵里（src/_wcustom/src/ 那四份，外46 四收回来的）。留源码又留产物就是两份同一个东西，
 #    所以主仓只留读它的那一段代码，产物自己长出来。
 src/_wcustom/wnw-custom-kernel.js
 #    首装那颗壳是 sfx.cs 现编出来的中间产物（publish 发现它比源文件旧会自己重编），不进仓
@@ -83,41 +83,29 @@ src/tools/本地路径.cjs
 Thumbs.db
 desktop.ini
 
-# 七、外41（2026-10-10 定：插件代码和主仓完全隔离）—— 这一节整节关掉。
-#   以前这里是"破例放行组件包"：data\plugins\<id>\ 那一格进仓，理由是 clone 下来就能开机跑。
-#   现在七家插件各住各的仓库（src\_build\plugin-repos.mjs 从开发这棵树按原路径挑出去、各铺一棵），
-#   主仓再留一份就是同一个东西摆两处，推的时候也分不清哪一面是原件。
-#   摘的只是"进不进仓"：盘上 data\plugins\<id>\ 一个字节没动，开发机运行时读的就是这一格，
-#   自检（src\tools\selfcheck.mjs 走的是文件系统）和审计、发布脚本都不受影响。
-#   哪天要把某家插件收回主仓，把这一节下面那几条 ! 恢复原样即可。
-#   下面这些是被关掉的老写法，留个名字在这里好查（都排在 /data/* 之后，等于不生效）：
-#   !/data/plugins/   !/data/plugins/*/   !/data/plugins/*.zip   /data/plugins/**/*.code.js
+# 七、外46 四（2026-10-11 定：仓并成两棵）—— 六家插件的代码回到这一棵里，跟着主仓一起提交。
+#   这一节从前是整节关掉的：七家各住各的仓，主仓再留一份就是同一个东西摆两处。
+#   路线换了 —— 本体和插件一起出门，开箱就有，能不能用由授权决定，不要的那一家可以卸；
+#   代码又只在这一棵里改，那这一棵就是原件。旁边那一格只剩「为写」一家（它住私有仓，不并）。
+#   那六棵是把自己的提交历史整棵接进来的（不是重新拷一份），所以「这一家哪一笔改的」还查得到。
 #
-#   同一节里接着关掉的还有插件自己在开发树上的源码 —— 这三棵都已经有各家的仓
-#   （src\_build\plugin-repos.mjs 那张表就是名单），主仓再留一份就是同一个东西摆两处：
-#     src/_wnw/src/            为写那二十份词格源码（由 src\_wnw\build-kernel.mjs 出内核）
-#     src/_wcustom/src/        组件定制那四份源码（由 src\_wcustom\build-kernel.mjs 出内核）
-#     src/pack/plugin/         MusicBee 桥插件的源码与那颗编译脚本
-#   第六节那两句「让它进仓就等于把为写的源码整包推上去」讲的正是这件事，到这才真成立。
-#   注意：摘的仍然只是"进不进仓"。开发机上这几棵原样躺在盘上，
-#   node src\_wnw\build-kernel.mjs、node src\_fd\build.mjs、审计、发布脚本读的都是盘上那一份，
-#   一条都没断。断的只有一种走法：单独 clone 主仓就不再有这三棵源码，
-#   要重新生成页面得把对应的插件仓摆到旁边 —— 这正是「外壳干净、功能靠包搭」那一条的形状。
+#   放行的只有插件自己那一格；各家在 src 底下的源码本来就被第二节那道 !/src/ 收着，不另写规则。
+#   仍然不认的（跟着版本走就错了，或者本来就是产物）：
+#     data/plugins/off.json        这台机器卸没卸过 —— 每台各一份
+#     data/plugins 底下任何 .zip   压好的成品，发布时现压
+#     data/plugins-factory/        「原版」那一格：发布时从各家现拷，留在第四节的 /data/* 里没放回来
+#     wnw-custom-kernel.js         组件定制的内核产物（第六节那一条照旧）
 #
-#   外41 第五段（他一句「声笔练习也要剥离成独立插件」）：底下这八份跟着一起摘出去。
-#   从前它们算"编译期共用"所以留在主仓 —— src\_fd\build.mjs:13 就 import 这一颗，
-#   :114 在构建期把它嵌进宿主整页。为写和组件定制其实是同一个形状（也是构建期嵌进整页），
-#   既然那两棵摘了，这一棵没道理留着。运行时那一段不动：还是开机时按 off.json 那一串加载。
+#   为写那一整棵照旧不认 —— 它是收费的那一个，源码住在私有仓那一棵里：
 /src/_wnw/src/
 /src/_wnw/build-kernel.mjs
-/src/_wcustom/src/
-/src/_wcustom/build-kernel.mjs
-/src/pack/plugin/
-/src/_build/rp-kernel.mjs
-/src/_build/rp-base.html
-/src/_build/p1.js
-/src/_build/p2.js
-/src/_build/p3.js
-/src/_build/p4.js
-/src/_build/p5.js
-/src/_build/p6.js
+
+# 八、外46 四：插件那一格的放行（顺序不能换 —— 先放目录，再按名字排掉成品）
+!/data/plugins/
+/data/plugins/*
+!/data/plugins/*/
+/data/plugins/**/*.zip
+
+#   为写那一家没并进来（它是收费的那一个），可盘上它就在插件那一格隔壁；
+#   上面那道按目录放行会把它一并露出来，所以在这儿盖回去 —— 排在最后一条才算数。
+/data/plugins/why-not-write/
