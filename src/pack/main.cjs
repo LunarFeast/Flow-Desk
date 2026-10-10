@@ -390,7 +390,7 @@ function syncLists(data, log){
   for(const n of ['ui-text.yaml', 'card-size.yaml']){ try{ layList(data, n, log); }catch(e){} }
 }
 
-/* ---------- 版本号文件取最新：文件名里那段版本号最大那个 ----------
+/* ---------- 版本号文件取最新：按文件时间认最近写过的那一张 ----------
    号现在是「主.次.补丁-预发布+build.<git 短哈希>」这一串（真身 src\_build\version.mjs）：
    取哪一张页按**文件时间**认，不按号的大小认 —— 号从 1.4.0-dev 回跳到 1.0.0-alpha 之后，
    「挑号最大的」会挑回那张旧页，屏幕上跑的就是上上个版本，一句错都不报。
