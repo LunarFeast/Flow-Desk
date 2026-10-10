@@ -3,7 +3,7 @@
   "name": "音乐遥控器",
   "author": "Flow-Desk",
   "source": "内置出厂",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha+build.802919d",
   "minShell": "1.0.0",
   "host": [
     "fd",
@@ -18,7 +18,9 @@
   "desc": "监听系统正在放的歌，配同目录歌词逐句跟",
   "dataKeys": [],
   "kvKeys": [],
-  "stateKeys": ["music-"],
+  "stateKeys": [
+    "music-"
+  ],
   "appChannels": [
     "mediaState",
     "mediaOn",
