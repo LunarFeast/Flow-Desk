@@ -1,4 +1,4 @@
 {
-  "shell": "1.4.0-dev",
-  "content": 17
+  "shell": "1.0.0",
+  "pre": "alpha"
 }

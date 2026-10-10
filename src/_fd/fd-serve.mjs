@@ -30,6 +30,8 @@ const ICONS_DIR = process.env.FD_ICONS || path.join(TREE.tree, 'icons');
 /* 默认取 FD_DIR 里版本号最大的那份 Flow_Desk_*.html，出新版不用回来改这里；想钉住某一版就传 ENTRY。
    取号口径和 exe 那份一致：吃 -dev 这类字母后缀，非数字当分隔符，_v0.x 老文件不以数字开头所以天然不选。 */
 const ENTRY = process.env.ENTRY || latestEntry();
+/* 取哪一张页按文件时间认，不按号的大小认（号从 1.4.0-dev 回跳到 1.0.0-alpha 之后，
+   「挑号最大的」会挑回那张旧页）；同一分钟落的两张再按号比，+build 那一段不参与比大小。 */
 function latestEntry(){
   const re = /^Flow_Desk_([\d][\w.+-]*)\.html$/;
   let best = null;
@@ -37,9 +39,10 @@ function latestEntry(){
     for(const n of fs.readdirSync(FD_DIR)){
       const m = n.match(re);
       if(!m) continue;
-      const raw = m[1], v = raw.split(/[^\d]+/).filter(Boolean).map(Number);
-      const c = best ? cmpVer(v, best.v) : 1;
-      if(c > 0 || (c === 0 && raw > best.raw)) best = { n, v, raw };
+      const raw = m[1], v = raw.split('+')[0].split(/[^\d]+/).filter(Boolean).map(Number);
+      let mt = 0; try{ mt = fs.statSync(path.join(FD_DIR, n)).mtimeMs; }catch(e){}
+      const c = best ? (mt - best.mt || cmpVer(v, best.v)) : 1;
+      if(c > 0 || (c === 0 && raw > best.raw)) best = { n, v, raw, mt };
     }
   }catch(e){}
   return best ? best.n : 页名();

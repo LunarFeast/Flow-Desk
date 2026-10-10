@@ -11,7 +11,7 @@ import { assertClean } from '../_build/scan-packs.mjs';
 import uitext from '../pack/uitext.cjs';
 import cardsize from '../pack/cardsize.cjs';
 import { rpKernelSource } from '../_build/rp-kernel.mjs';
-import { 下一号, 落账, 页名 } from '../_build/version.mjs';
+import { 号, 页名 } from '../_build/version.mjs';
 import { PACK_RENAME } from '../_build/pack-rename.mjs';
 
 const ROOT = path.resolve(import.meta.dirname);
@@ -19,10 +19,11 @@ const ROOT = path.resolve(import.meta.dirname);
    全按相对位置找，整个 Flow-Desk 文件夹挪盘、拷到别的电脑，生成页面的路径跟着走 */
 const TREE = tree(ROOT);
 const OUT_DIR = TREE.pages;
-/* 版本号：真身在 src\_build\version.json，这一趟生成取「下一号」，写完页面才落账
-   （失败的那一趟不记账，下一趟接着用同一个号）。产物文件名就是这串号唯一的载体，
-   出包、更新标记、页面里显示的那一份都从它取，别再在别处写死第二串。 */
-const 版 = 下一号();
+/* 版本号：真身在 src\_build\version.json（前两段），build 那一段是打包那一刻所在仓的 HEAD 短哈希 ——
+   由打包脚本用环境变量 FD_BUILD 传进来，没传就地问一次 git。这一趟一个字都不往版本格里写：
+   先 commit → 拿短哈希 → 号传进打包 → 生成页面，顺序不能反（反了号和提交就对不上）。
+   产物文件名带的就是这一串号，出包、更新标记、页面里显示的那一份都从它取，别再在别处写死第二串。 */
+const 版 = 号();
 const OUT = path.join(OUT_DIR, 页名(版));
 /* 机械门槛：插件越界扫描。插件代码不再拼进产物，但它和外壳跑在同一个页面里 ——
    ES module 只藏住插件自己的顶层名字，宿主的经典脚本全局名（Store/Shell/Cover/Bus…）在模块里照样看得见，
@@ -121,8 +122,7 @@ const html = tpl.replace('/*__FD__*/', () => js);
 try{ new vm.Script(js, { filename:'fd-bundle' }); }catch(e){ console.error('BUNDLE FAIL ' + e.message); process.exit(1); }
 fs.mkdirSync(OUT_DIR, { recursive:true });
 fs.writeFileSync(OUT, html, 'utf8');
-/* 页面落盘了才记账：这一趟要是半路停在语法闸上，号不烧掉，下一趟还是它 */
-落账(版);
+/* 号不烧、不记：这一串就是「当前提交」，同一笔提交再生成一次还是同一个文件名（覆盖那一张）。 */
 console.log('SYNTAX OK');
 /* 组件这一段不再进产物：开机从 data\plugins\ 加载，名单归运行时认 */
 console.log('插件 · 运行时加载（构建不拼段）：' + path.join(TREE.data, 'plugins'));

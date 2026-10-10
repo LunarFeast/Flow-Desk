@@ -19,6 +19,8 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 /* 出厂镜像那一层和出包共用一份（mirror.mjs）：两边各写一遍就会有一边忘了改 */
 import { apply as layMirror, plan as mirrorPlan, refuseRunning, MIRROR } from './mirror.mjs';
+/* 号也只有一处真身（_build/version.mjs）：这一趟照它取当前那一张页，不再从 pages\ 挑「号最大的」 */
+import { 号, 页名 } from '../_build/version.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.FD_TREE || path.resolve(HERE, '..', '..');   /* Flow-Desk\ 那一层 */
@@ -57,45 +59,19 @@ if(DRY){
   for(const line of layMirror()) console.log(line);
 }
 
-/* 版本号按数字段比大小：1.0.10 比 1.0.4 大，照字符串比会挑错那份（到 10 那一档就翻车）。
-   底下「只带最新那份」那段用的是同一把尺，别各写一套。 */
-function verNum(raw){ return raw.split(/[^\d]+/).filter(Boolean).map(Number); }
-function cmpVer(a, b){ for(let i = 0; i < Math.max(a.length, b.length); i++){ const d = (a[i] || 0) - (b[i] || 0); if(d) return d; } return 0; }
-/* 版本号从 pages\ 的文件名里取（Flow-Desk 这一张页：1.4.0-dev.3 这种，尾巴 -dev 是还在开发中，
-   最后那一段是生成流水号 —— 号写在 src\_build\version.json，别处只从文件名倒着取） */
-function verIn(dir, pre, suf){
-  let best = null;
-  try{
-    for(const n of fs.readdirSync(dir)){
-      if(!n.startsWith(pre) || !n.endsWith(suf)) continue;
-      const raw = n.slice(pre.length, -suf.length);
-      const v = verNum(raw);
-      if(!best || cmpVer(v, best.v) > 0) best = { raw, v };
-    }
-  }catch(e){}
-  return best ? best.raw : '';
-}
-/* 版本号从 pages\ 的文件名里取（双段：1.4.0-dev.3 这种，前段程序版本、后段生成流水号）。
-   只有 Flow-Desk 这一张页了：声笔输入法练习的代码拼在它里面，不再出独立页面。 */
-const VERSIONS = { fd: verIn(PAGES, 'Flow_Desk_', '.html') };
+/* 号只有一处真身（src\_build\version.mjs）：这一趟不从 pages\ 挑「号最大的那一张」——
+   号从 1.4.0-dev 回跳到 1.0.0-alpha 之后，「最大」会挑回那张旧页，包就带着上上个版本出门了。
+   当前这一支号那一张页就是包里那一张。 */
+const VERSIONS = { fd: 号() };
+const 当前页 = 页名(VERSIONS.fd);
+if(!fs.existsSync(path.join(PAGES, 当前页)))
+  throw new Error('pages\\ 里没有当前这一支号的页（' + 当前页 + '）—— 先跑 node src\\_fd\\build.mjs 生成，再来打包');
 
-/* ---------- pages\ 里只带最新那份 ----------
+/* ---------- pages\ 里只带当前那一份 ----------
    这一层躺着历史产物（1.1.1 / 1.1.2 / 1.1.3…），一股脑塞进包里就是白背 11MB 老 html。
-   口径和 publish.mjs 一把尺：版本号按数字段比大小，最新的留下，help.md 和别的一律照带。 */
+   口径和 publish.mjs 一把尺：只带当前号那一张，help.md 和别的一律照带。 */
 const ARTIFACT = { '': 'Flow_Desk_' };
-const newest = new Map();
-for(const [sub, pre] of Object.entries(ARTIFACT)){
-  const dir = sub ? path.join(PAGES, sub) : PAGES;
-  let best = null;
-  try{
-    for(const n of fs.readdirSync(dir)){
-      if(!n.startsWith(pre) || !n.endsWith('.html')) continue;
-      const v = verNum(n.slice(pre.length, -'.html'.length));
-      if(!best || cmpVer(v, best.v) > 0) best = { name: n, v };
-    }
-  }catch(e){}
-  if(best) newest.set(pre, best.name);
-}
+const newest = new Map([['Flow_Desk_', 当前页]]);
 function skipOldPage(rel){
   const i = rel.lastIndexOf('/');
   const dir = i < 0 ? '' : rel.slice(0, i + 1), n = i < 0 ? rel : rel.slice(i + 1);

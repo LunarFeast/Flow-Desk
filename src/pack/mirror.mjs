@@ -20,6 +20,8 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 /* 认插件那把尺和生成页面用的是同一把（_build/packs.mjs）—— 外43 起这一层不再铺插件，
    那把尺只有 publish 打货架的时候用。 */
+/* 号也只有一处真身：这一层铺的是「当前这一支号那一张页」，不是「pages\ 里号最大的那一张」 */
+import { 页名 } from '../_build/version.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 /* 产物就在 Flow-Desk\ 根上（src\pack 往上两级）：运行时、exe、pages、data、src 同级 */
@@ -70,8 +72,9 @@ function into(src, dst){
 function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function cmpVer(a, b){ for(let i = 0; i < Math.max(a.length, b.length); i++){ const d = (a[i]||0) - (b[i]||0); if(d) return d; } return 0; }
 /* 和 main.cjs 里那套一样的取版本法：文件名里 * 的位置取号，取最大的。
-   号段能吃 -dev 和点：1.4.0-dev.3 拆成 [1,4,0,3]，数字相同再比原始串。 */
-function verNum(raw){ return raw.split(/[^\d]+/).filter(Boolean).map(Number); }
+   号段能吃 -alpha / -beta、点和 +build 那一串：1.0.0-alpha+build.977bc41 拆成 [1,0,0]，
+   短哈希不参与比大小（它只负责认是哪一笔提交），数字相同再比原始串。 */
+function verNum(raw){ return String(raw).split('+')[0].split(/[^\d]+/).filter(Boolean).map(Number); }
 function pickLatest(dir, pat){
   const one = path.join(dir, pat);
   if(!pat.includes('*')) return fs.existsSync(one) ? one : null;
@@ -115,8 +118,10 @@ const SHELL_SKIP = ['smtc-watcher.ps1'];
    note 上写的是"这份凭什么在这儿"，plan() 报的时候带着它，看的人不用回来翻脚本。 */
 function jobs(){
   const out = [];
-  /* 页面层兜底：只认版本号最大那张 */
-  const page = pickLatest(SRC_PAGES, 'Flow_Desk_*.html');
+  /* 页面层兜底：认当前这一支号那一张页（号回跳到 1.0.0-alpha 之后，「挑号最大的」会挑回旧页）。
+     当前号那张还没落盘（改了源码没跑生成）就退回挑一张，并报一句 —— 别让整个镜像铺不下去。 */
+  const 当前 = path.join(SRC_PAGES, 页名());
+  const page = fs.existsSync(当前) ? 当前 : pickLatest(SRC_PAGES, 'Flow_Desk_*.html');
   if(page) out.push({ k:'file', note:'页面兜底', from:page, to:path.join(RES, 'pages', path.basename(page)) });
   else console.log('  ! ' + SRC_PAGES + ' 里没有 Flow_Desk_*.html，页面兜底这份没打进产物');
   /* 出厂底本：帮助那一份的原件就是 pages\help.md（程序读的是它），跟着更新走。

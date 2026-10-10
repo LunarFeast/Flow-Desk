@@ -391,9 +391,10 @@ function syncLists(data, log){
 }
 
 /* ---------- 版本号文件取最新：文件名里那段版本号最大那个 ----------
-   双段版本号：前段是程序版本（1.4.0-dev），后段是生成流水号（.3），
-   中间用点连着、前段里还带着 -dev，所以取号那段得能吃字母和连字符，不能只认 [\d.]。
-   号只写在 src\_build\version.json 那一格，产物文件名是它在盘上唯一的载体。 */
+   号现在是「主.次.补丁-预发布+build.<git 短哈希>」这一串（真身 src\_build\version.mjs）：
+   取哪一张页按**文件时间**认，不按号的大小认 —— 号从 1.4.0-dev 回跳到 1.0.0-alpha 之后，
+   「挑号最大的」会挑回那张旧页，屏幕上跑的就是上上个版本，一句错都不报。
+   同一分钟落的两张（拷贝会带上原来的时间戳）再按号比，短哈希那一段不参与比大小。 */
 function latestIn(full){
   const dir = path.dirname(full), pat = path.basename(full);
   if(!pat.includes('*')) return fs.existsSync(full) ? full : null;
@@ -404,14 +405,15 @@ function latestIn(full){
       const m = n.match(re);
       if(!m) continue;
       const raw = m.slice(1).join('-'), v = verNum(raw);
-      const c = best ? cmpVer(v, best.v) : 1;
-      if(c > 0 || (c === 0 && raw > best.raw)) best = { f:path.join(dir, n), v, raw };
+      let mt = 0; try{ mt = fs.statSync(path.join(dir, n)).mtimeMs; }catch(e){}
+      const c = best ? (mt - best.mt || cmpVer(v, best.v)) : 1;
+      if(c > 0 || (c === 0 && raw > best.raw)) best = { f:path.join(dir, n), v, raw, mt };
     }
   }catch(e){ return null; }
   return best ? best.f : null;
 }
-/* 1.4.0-dev.3 → [1,4,0,3]：dev 这类字只当分隔符 */
-function verNum(raw){ return raw.split(/[^\d]+/).filter(Boolean).map(Number); }
+/* 比大小只比 +build 之前那一段：短哈希不参与排序，它只负责认「是哪一笔提交」 */
+function verNum(raw){ return String(raw).split('+')[0].split(/[^\d]+/).filter(Boolean).map(Number); }
 function resolveEntry(rel){
   return latestIn(path.join(PAGES_ROOT, rel)) || latestIn(path.join(PAGES_BUNDLED, rel));
 }

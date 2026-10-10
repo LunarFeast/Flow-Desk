@@ -30,6 +30,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { scan as packScan, writeZip } from '../_build/packs.mjs';
 import { assertClean } from '../_build/scan-packs.mjs';
+import { 号, 页名 } from '../_build/version.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TREE = process.env.FD_TREE ? path.resolve(process.env.FD_TREE) : path.resolve(HERE, '..', '..');
@@ -60,31 +61,21 @@ function walk(dir, base){
   }
   return out;
 }
-function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function cmpVer(a, b){ for(let i = 0; i < Math.max(a.length, b.length); i++){ const d = (a[i] || 0) - (b[i] || 0); if(d) return d; } return 0; }
-function verNum(raw){ return raw.split(/[^\d]+/).filter(Boolean).map(Number); }
-function pickLatest(dir, pat){
-  if(!fs.existsSync(dir)) return null;
-  const re = new RegExp('^' + pat.split('*').map(esc).join('([\\d][\\w.+-]*)') + '$');
-  let best = null;
-  for(const n of fs.readdirSync(dir)){
-    const m = n.match(re); if(!m) continue;
-    const raw = m.slice(1).join('-'), v = verNum(raw);
-    const c = best ? cmpVer(v, best.v) : 1;
-    if(c > 0 || (c === 0 && raw > best.raw)) best = { f: path.join(dir, n), v, raw };
-  }
-  return best ? best.f : null;
-}
-function verOf(p, prefix){ return p ? path.basename(p).slice(prefix.length, -'.html'.length) : ''; }
-/* 只有 Flow-Desk 这一个版本号：为写和声笔输入法练习的代码都拼在这一张页里，各自不再出独立页面 */
-const VER = { fd: verOf(pickLatest(PAGES, 'Flow_Desk_*.html'), 'Flow_Desk_') };
-/* 版本号最大的那一份是产物里当前的版本，其余的老版本不进发布物 */
-const LATEST = new Set([pickLatest(PAGES, 'Flow_Desk_*.html')].filter(Boolean).map(p => path.resolve(p)));
+/* 比大小只比 +build 之前那一段：短哈希不参与排序，它只负责认「是哪一笔提交」 */
+function verNum(raw){ return String(raw).split('+')[0].split(/[^\d]+/).filter(Boolean).map(Number); }
+/* 只有 Flow-Desk 这一个版本号：为写和声笔输入法练习的代码都拼在这一张页里，各自不再出独立页面。
+   号只有一处真身（src\_build\version.mjs）—— 这一趟不再「从 pages\ 里挑号最大的那一张」：
+   号从 1.4.0-dev 回跳到 1.0.0-alpha 之后，「最大」会挑回那张旧页，发布物就带着上上个版本出门了。 */
+const VER = { fd: 号() };
+const 当前页 = 页名(VER.fd);
+if(!fs.existsSync(path.join(PAGES, 当前页)))
+  throw new Error('pages\\ 里没有当前这一支号的页（' + 当前页 + '）—— 先跑 node src\\_fd\\build.mjs 生成，再来打包');
+/* 当前这一支号那一张进发布物，其余老版本都不带 */
 function superseded(rel){
   if(!/\.html$/.test(rel)) return false;
   const n = rel.split('/').pop();
-  if(!/^Flow_Desk_/.test(n)) return false;
-  return !LATEST.has(path.resolve(path.join(PAGES, ...rel.split('/'))));
+  return /^Flow_Desk_/.test(n) && n !== 当前页;
 }
 
 /* ---------- 这一棵树里哪些文件进发布物 ---------- */
