@@ -58,6 +58,8 @@ src/pack/plugin/dist/
 #    外29 第 40 轮：探针搬进 src\tools\probes\ 之后，它们生成的对照页面是产物，
 #    原件是旁边那颗 mk-*.mjs（跑一下就有），别把 html 当源码进仓。
 src/tools/probes/*.html
+#    外46 补：同一颗 mk-smtc-sync-test.mjs 还会生一份 7.9 MB 的测试音（随跑随生，跑完整套探针会把仓库刷脏）
+src/tools/probes/*.wav
 #    同步 GitHub 第 4 条（为写分离）：这一颗是私有那一棵出好的产物（node src\_wnw\build-kernel.mjs），
 #    公开这棵只在生成的时候读它一次 —— 让它进仓就等于把为写的源码整包推上去。
 src/_wnw/wnw-kernel.js
