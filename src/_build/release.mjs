@@ -100,6 +100,7 @@ function 号写回清单(r){
   const 号 = (r.号 && (r.动了 || !/\+build\./.test(老))) ? r.号 : 老;
   r.号 = 号 || r.号;
   if(!号 || 号 === 老) return;
+  if(DRY){ P('  ' + r.repo.padEnd(38) + '（--dry：清单里那一格会从 ' + (老 || '（空）') + ' 换成 ' + 号 + '，这一趟不写、不提交）'); return; }   /* --dry 一个字节不写（上一轮漏了这一道，补上） */
   m.version = 号;
   fs.writeFileSync(p, JSON.stringify(m, null, 2) + (/\r?\n$/.test(原) ? '\n' : ''), 'utf8');   /* 照原样两空格缩进、LF 行尾写回，不顺手改排版 */
   const args = ['src/_build/plugin-repos.mjs', '--only=' + r.id, '--out=' + OUT,
