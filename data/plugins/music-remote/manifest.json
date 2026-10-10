@@ -3,7 +3,7 @@
   "name": "音乐遥控器",
   "author": "Flow-Desk",
   "source": "内置出厂",
-  "version": "1.0.0-alpha+build.802919d",
+  "version": "1.0.0-alpha+build.cd3ed73",
   "minShell": "1.0.0",
   "host": [
     "fd",
