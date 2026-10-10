@@ -170,13 +170,13 @@ head('四、插件清单 assets 点的随行文件 · 包里在不在（出厂�
   }
   if(!n) say('  · 没有任何包点随行文件');
   else ok(n + ' 处点名的随行文件都在包里');
-  /* 反着钉一条：插件的代码不许再回到程序那一层（外43 剥离的账）。
-     resources\app\data\plugins\ 一有东西，就说明有人把插件塞回发布链了。 */
+  /* 反着钉一条：插件的代码不许进程序代码那一层。外46 起插件跟着本体一起进发布物，只进两格 ——
+     data\plugins\ 和 data\plugins-factory\；resources\app\data\plugins\ 一有东西就是塞错了地方。 */
   const back = path.join(MIRROR, 'data', 'plugins');
   if(exists(back)){
     let k = 0; try{ k = fs.readdirSync(back).length; }catch(err){}
-    bad('出厂镜像里又出现了插件那一格（' + back + ' · ' + k + ' 家）—— 插件跟主程序分开各自发布，这一层不该有它');
-  } else ok('出厂镜像里没有插件那一格 · 程序这一层不带插件代码');
+    bad('出厂镜像里又出现了插件那一格（' + back + ' · ' + k + ' 家）—— 插件只进发布物的 data\\plugins\\ 和 data\\plugins-factory\\，程序代码这一层不收');
+  } else ok('出厂镜像里没有插件那一格 · 程序代码那一层不带插件');
 }
 
 /* ---------- 五、手工那一步有没有掉链子 ---------- */

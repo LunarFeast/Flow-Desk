@@ -42,7 +42,7 @@ const DATA_ROOT = path.join(TREE, 'data');
    活的那一层 = data\plugins\（运行时一家家 import 的就是这儿），
    原版那一格 = data\plugins-factory\（导入那一下顺手真复制一份，「恢复出厂」从这儿拷回来）。
    外43 改的这一处：原版从前住在自带的 resources\app\data\plugins\，也就是插件代码跟着程序发一份 ——
-   插件跟主程序分开各自开发、各自发布，程序这一层一个插件的字节都不该带；
+   程序代码那一层（resources\\app\\）不带插件的字节；插件跟着发布物住在 data\\plugins\\（外46 起本体和插件一起打包）；
    而且那一层每次更新包都被整个换掉，用户导入的原版放进去等于交给下一趟更新撤走。
    挪进数据层之后：更新不碰它（更新包认死了一条 data\ 不写），它跟着这棵树一起搬。
    这一句得排在 prepareTrees 前面 —— const 没初始化就是 TDZ 崩给他在托盘上看。 */

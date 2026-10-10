@@ -115,14 +115,16 @@ const 三份 = (切(main, 'syncLists').match(/\[\s*'ui-text\.yaml'[^\]]*\]/) || 
 台.判('用户数据详单不进出厂层（它是用户自己写的那一篇，首次安装就没有它）', !/userdata-list/.test(底本段) && !/userdata-list/.test(三份), 底本段 + ' | ' + 三份);
 台.判('仓里也没有它的一份（不在公开面、也不在镜像取件处）', !fs.existsSync(ROOT + 'src/pack/data/userdata-list.md'));
 
-/* ---------- 五 · 外43：插件跟主程序分开各自发布，程序这一层一个插件的字节都不带 ----------
-   从前有三条路把插件塞进发布物：publish 把 data\plugins\ 打进首装树、mirror 往 resources\app\data\plugins\
-   铺一份、开机看见没有插件格就把那一份铺出来。三条全撤了。
-   替代的形状：用户导入那一下顺手往 data\plugins-factory\ 留一份原版，「恢复出厂」和随行文件的兜底取这一格。 */
-台.题('五 · 插件从发布物和程序层里剥干净了没有');
+/* ---------- 五 · 插件往发布物里走的三条路：两条仍然堵着，一条外46 又铺开了 ----------
+   ① mirror 往 resources\app\data\plugins\ 铺一份 —— 仍然堵着（程序代码那一层不收插件）。
+   ② 开机看见没有插件格就把自带那一层铺出来 —— 仍然堵着（seedMissing 没了）。
+   ③ publish 把插件铺进首装树 —— 外43 拆过，外46 又铺开了：他 2026-10-10 定本体和插件一起打包，
+      铺进去的是树里的 data\plugins\（活的）和 data\plugins-factory\（原版），不是 app 那一层。
+   替代的形状仍在：导入那一下顺手往 data\plugins-factory\ 留一份原版，「恢复出厂」和随行文件兑底取这一格。 */
+台.题('五 · 插件走发布物那三条路（两条堵着、一条外46 铺开）');
 const pub = rd('src/pack/publish.mjs'), comp = rd('src/pack/comp-files.cjs'), serve = rd('src/_fd/fd-serve.mjs');
-台.判('首装那棵树不再往包里塞插件（一处 ' + "data/plugins/" + ' 的落地都没有）',
-  !/files\.set\('data\/plugins\//.test(pub) && !/made\.set\('data\/plugins\//.test(pub));
+台.判('首装那棵树现在铺插件：活的与原版两处都落地（外46 起本体和插件一起打包）',
+  pub.indexOf("made.set('data/plugins/'") >= 0 && pub.indexOf("made.set('data/plugins-factory/'") >= 0);
 台.判('出厂镜像不再铺插件那一格（mode:\'packs\' 和那条 job 都没了）',
   !/mode:'packs'/.test(镜) && !/'data',\s*'plugins'/.test(镜));
 台.判('镜像那把尺也不再认包（铺不了插件就不用来回扫包）', !/packScan/.test(镜));
@@ -141,6 +143,6 @@ const 落地 = 切(main, 'landAsset');
 台.判('随行文件的兜底也跟着换到那一格（不再从 resources\\app 取）',
   /path\.join\(ORIG_ROOT, id\)/.test(落地) && !/DATA_BUNDLED/.test(落地));
 台.判('这一格不算书名（那道名字闸认它）', /'plugins', 'plugins-factory'/.test(main));
-台.判('首装那份说明改口了（不再说"出厂带的那些包就住在 data\\plugins"）',
-  !/出厂带的那些包/.test(pub) && /这一份发布物里一个插件都没有/.test(pub));
+台.判('首装那份说明改口了（不再说一个插件都不带，改说跟着本体一起出门）',
+  !/这一份发布物里一个插件都没有/.test(pub) && !/出厂带的那些包/.test(pub) && /这一份发布物带着/.test(pub));
 台.收尾();
