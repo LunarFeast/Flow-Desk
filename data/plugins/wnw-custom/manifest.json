@@ -3,7 +3,7 @@
   "name": "组件定制",
   "author": "Flow-Desk",
   "source": "内置出厂",
-  "version": "1.0.0-alpha+build.b9daa64",
+  "version": "1.0.0-alpha+build.94117d6",
   "minShell": "1.0.0",
   "host": [
     "fd"
