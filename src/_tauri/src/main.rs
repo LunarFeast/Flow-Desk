@@ -51,6 +51,15 @@ fn shell_info() -> serde_json::Value {
 
 fn main() {
     tauri::Builder::default()
+        /* 窗口这一组要记着的三件事：当前缩放、关窗口那张框问出去没有、是不是已经在收摊 */
+        .manage(tauri_bind::win_cmds::窗口手::default())
+        /* 关窗口先拦下来问页面；窗口形状一变就回报 win:state */
+        .on_window_event(tauri_bind::win_cmds::窗口事件)
+        /* 托盘：那张框上「收进托盘」那条要有地方去，左键露/缩、右键开单 */
+        .setup(|app| {
+            tauri_bind::win_cmds::建托盘(app.handle())?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             shell_info,
             tauri_bind::fs_cmds::fs_read,
@@ -63,6 +72,8 @@ fn main() {
             tauri_bind::fs_cmds::fs_list,
             tauri_bind::fs_cmds::fs_tree,
             tauri_bind::fs_cmds::fs_read_text,
+            tauri_bind::win_cmds::win_ctl,
+            tauri_bind::win_cmds::win_close_answer,
         ])
         .run(tauri::generate_context!())
         .expect("Flow-Desk 的 Tauri 壳起不来");

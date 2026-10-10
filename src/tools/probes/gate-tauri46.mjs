@@ -9,6 +9,12 @@
      四、每一颗都上了 main.rs 的注册单（没上单的命令等于不存在）；
      五、纯判断那一格里有测试在跑，而且构建脚本能单独把测试跑一趟；
      六、这一摊要进仓的每一本文本里都不许有这台机器的盘符、帐户名、私人目录名；
+     七、骨架那张占位页请的命令是真的存在的（上一版它请了一串没注册的名，读到的是「问不动」）；
+     八、窗口那一组：主进程 winCtl 认的十一种动作串，壳里逐条对得上，两颗都上了注册单；
+     九、回报给页面的形状还是那两格，两枚事件名 win:state 与 fd:close-ask 两头同一串；
+     十、二十秒没回话按「退出」收那一条兜底，两头都得在；
+     十一、缩放档位住在纯判断那一格且带测试，托盘那一档 feature 开着；
+     十二、壳那一头把记缩放、拦关闭、开机建托盘这三样装上了。
      七、骨架那张占位页请的命令是真的存在的（上一版它请了一串没注册的名，读到的是"问不动"）。
    ============================================================ */
 import fs from 'node:fs';
@@ -21,7 +27,12 @@ const 壳根 = path.join(ROOT, 'src', '_tauri');
 const main = rd('src/pack/main.cjs');
 const 壳 = rd('src/_tauri/src/main.rs');
 const 命令 = rd('src/_tauri/src/tauri_bind/fs_cmds.rs');
-const 判断 = rd('src/_tauri/src/core/fs_policy.rs') + '\n' + rd('src/_tauri/src/core/mod.rs');
+const 壳里 = p => rd('src/_tauri/' + p);
+const 窗 = 壳里('src/tauri_bind/win_cmds.rs');
+const 清单 = 壳里('Cargo.toml');
+/* 纯判断那一格整格扫：往后每一颗判断都落在这格，规矩一起管住，不用一颗补一条 */
+const 判断 = fs.readdirSync(path.join(壳根, 'src', 'core')).filter(f => f.endsWith('.rs'))
+  .map(f => rd('src/_tauri/src/core/' + f)).join('\n');
 const 脚本 = rd('src/_tauri/build.mjs');
 const 占位页 = rd('src/_tauri/ui/index.html');
 
@@ -84,5 +95,46 @@ const 露 = 本.map(p => ({ p, 文: fs.readFileSync(p, 'utf8') }))
 const 请 = [...占位页.matchAll(/invoke\('([A-Za-z_0-9]+)'\)/g)].map(m => m[1]);
 台.数('占位页请了哪几颗', 请.join(' '));
 台.判('请的每一颗都在注册单上', 请.length > 0 && 请.every(n => 壳.includes(n)));
+
+台.题('八、窗口那一组：主进程 winCtl 认的动作串，壳里逐条对得上');
+const 段 = (() => {
+  const 起 = main.indexOf('function winCtl(act){');
+  const 止 = main.indexOf("ipcMain.handle('win:ctl'", 起);
+  return 起 < 0 || 止 < 起 ? '' : main.slice(起, 止);
+})();
+const 动作 = [...new Set([...段.matchAll(/a === '([A-Za-z]+)'/g)].map(m => m[1]))].sort();
+台.数('主进程那边 winCtl 认几种动作', 动作.length + ' 种 · ' + 动作.join(' '));
+for(const a of 动作) 台.判('壳里认「' + a + '」这一档', 窗.includes('"' + a + '"'));
+台.判('这一组的两颗都上了注册单（win:ctl 与 win:closeAnswer）',
+  壳.includes('win_cmds::win_ctl') && 壳.includes('win_cmds::win_close_answer'));
+
+台.题('九、回报给页面的形状与两枚事件名照旧');
+台.判('回报的还是那两格 { maximized, fullscreen }',
+  /maximized/.test(main) && /fullscreen/.test(main) && /maximized/.test(窗) && /fullscreen/.test(窗));
+for(const 件 of ['win:state', 'fd:close-ask'])
+  台.判('事件名「' + 件 + '」两头同一串（主进程发得出，壳也发得出）',
+    main.includes("'" + 件 + "'") && 窗.includes('"' + 件 + '"'));
+
+台.题('十、二十秒没回话按「退出」收（那条兜底两头都得在）');
+const 问段起 = main.indexOf('function askToClose()'), 问段止 = main.indexOf('function doClose(');
+台.判('主进程那边确有 20000 毫秒这一道', main.slice(问段起, 问段止).includes('20000'));
+台.判('壳这边同一道：from_secs(20) 到点就收摊', 窗.includes('from_secs(20)'));
+台.判('问过一次就不再重复问（待回答这块牌要拦两件事）',
+  窗.includes('手.待回答') && 窗.includes('手.退出中'));
+
+台.题('十一、窗口那一点纯判断有测试在跑，托盘那一档 feature 开着');
+台.判('纯判断那一格里有 win_policy（缩放档位在那儿，带测试）',
+  /win_policy/.test(判断) && fs.existsSync(path.join(壳根, 'src', 'core', 'win_policy.rs'))
+  && /zoom_step/.test(判断) && (判断.match(/#\[test\]/g) || []).length >= 8);
+台.判('缩放档位夹在 0.5 到 2 之间（跟主进程那边 Math.min(2,) Math.max(.5,) 同一档)',
+  /0\.5/.test(判断) && /2\.0/.test(判断)
+  && /Math.min\(2,/.test(main) && /Math.max\(\.5,/.test(main));
+台.判('托盘那一档 feature 开着（关窗口那张框「收进托盘」的落点）',
+  /features = \[[^\]]*"tray-icon"/.test(清单));
+
+台.题('十二、壳那一头把三样东西装上了');
+for(const 装 of ['.manage(', '.on_window_event(', '.setup('])
+  台.判('装上了 ' + 装, 壳.includes(装));
+台.判('拦关闭走的是 WindowEvent 里的 CloseRequested', 窗.includes('WindowEvent::CloseRequested'));
 
 台.收尾();

@@ -11,6 +11,7 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# tray-icon 这一档是给「关窗口那张框 · 收进托盘」那条留的落点：不开这一档，主进程那边的 hideToTray 在壳里没有对应的接口。
+tauri = { version = "2", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
