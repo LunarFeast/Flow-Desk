@@ -22,9 +22,9 @@ const CHECK = argv.includes('--检查');
 
 /* 这三处位置是这台机器的事，写在一个不进仓的地方读 —— 跟 src\tools\本地路径.cjs 同一待遇；
    那份还没登记 Tauri 这一格，所以先退回这几个默认值，量不出来就报清楚，别猜。 */
-/* 这三颗位置从 src	ools本地路径.mjs 那一道取（它读不进仓的那份登记），这一份里不钉任何字面路径 ——
+/* 这三颗位置从「本地路径」那道取口来（它读不进仓的那份登记），这一份里不钉任何字面路径 ——
    钉了就把这台机器的盘符推到公开面上去了（外41 第五段那条规矩）。取不到就报清楚，别猜。 */
-const { Rust工具链, Rust包缓存, Rust链接件 } = await import('../tools/本地路径.mjs');
+const { Rust工具链, Rust包缓存, Rust链接件, 编译缓存 } = await import('../tools/本地路径.mjs');
 const RUST_HOME = process.env.RUSTUP_HOME || Rust工具链;
 const CARGO_HOME = process.env.CARGO_HOME || Rust包缓存;
 const GNU = RUST_HOME ? path.join(RUST_HOME, 'toolchains', 'stable-x86_64-pc-windows-gnu', 'bin') : '';
@@ -38,6 +38,8 @@ const env = {
   ...process.env,
   RUSTUP_HOME: RUST_HOME,
   CARGO_HOME,
+  /* 编译产物不落工程旁边，落仓外那一格（不然工程底下会堆出两三个 G） */
+  CARGO_TARGET_DIR: 编译缓存 ? path.join(编译缓存, "flowdesk") : undefined,
   PATH: [MINGW, GNU, path.join(CARGO_HOME, 'bin'), process.env.PATH].join(path.delimiter),
 };
 const 活 = CHECK ? 'check' : 'build';

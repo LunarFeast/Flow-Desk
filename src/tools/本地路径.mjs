@@ -13,3 +13,4 @@ export const 探针沙盒 = 清(表.探针沙盒);
 export const Rust工具链 = 清(表.Rust工具链);
 export const Rust包缓存 = 清(表.Rust包缓存);
 export const Rust链接件 = 清(表.Rust链接件);
+export const 编译缓存 = 清(表.编译缓存);   /* 这一格必须纯英文：中文路径会让链接器找不到自己刚写出去的 .rlib */
