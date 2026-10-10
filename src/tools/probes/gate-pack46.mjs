@@ -10,10 +10,16 @@
      三、安装壳覆盖升级遇到 data\plugins\ 里已经有同一个名字的文件就不搬不写
         —— 那一格是「改代码」直接改的地方，换回出厂那一份就是弄丢用户写的东西；
      四、旧口径那几句话（一个插件都不带 / 一棵都不进 / 不许带插件代码）在所有说明和报错里消失；
-     五、真跑一趟 publish --dry：树里报出的家数与货架上的包数对得上，且一个字节没写。
+     五、真跑一趟 publish --dry：树里报出的家数与货架上的包数对得上，且一个字节没写；
+     六、盘上两格逐字节一致，且每一家那个号在插件仓里都有一枚 tag 钉在号里那笔提交上。
+        这一节是 2026-10-10 量出来两笔旧账之后补的：开发树原版那一格还挂着占位死号 1.0.0；
+        四棵插件仓一枚 tag 都没打过 —— 那是 --dry 漏判那一趟把清单写了、tag 却没打，
+        后来真跑那趟见「号已是真的、代码又没动」就一字不碰，缺口一直留着。
    ============================================================ */
+import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { rd, 记账, ROOT } from './lib-slice.mjs';
+import { OUT } from '../../_build/plugin-repos.mjs';
 
 const 台 = 记账('gate-pack46');
 const pub = rd('src/pack/publish.mjs');
@@ -56,15 +62,53 @@ for(const f of ['src/pack/publish.mjs', 'src/pack/main.cjs', 'src/pack/comp-file
   闸.includes('出厂镜像里又出现了插件那一格') && 闸.includes('程序代码这一层不收'));
 
 台.题('五、真跑一趟 publish --dry');
-let 报 = '';
+/* 号跟着「最近那一笔发布提交」取，跟发布脚本同一把尺。单独跑 publish 拿的是 HEAD 那一笔，
+   而我这一轮又往里补了几笔别的提交 —— HEAD 那一支号的页本来就不该存在，
+   这正是外44 定下的行为：不挑号最大的那一张，只认当前号那一张，不在就停工。 */
+let 发布 = '', 报 = '';
 try{
+  发布 = execFileSync('git', ['log', '-1', '--format=%h', '--grep=^发布 '],
+    { cwd: ROOT, encoding: 'utf8' }).trim();
   报 = execFileSync(process.execPath, ['src/pack/publish.mjs', '--dry'],
-    { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, FD_BUILD: 发布 } });
 }catch(e){ 报 = String((e && e.stdout) || '') + String((e && e.stderr) || (e && e.message) || e); }
 const m = 报.match(/([0-9]+) 家×两格齐/);
 const 货架 = (报.match(/货架 ([0-9]+) 个包/) || [])[1];
+台.判('照最近那一笔发布提交取号（' + (发布 || '没找到') + '）', 发布.length >= 7);
 台.判('--dry 报出几家×两格齐（实际：' + (m ? m[1] + ' 家' : '没报') + '）', !!m);
 台.判('树里那几家与货架那几个包同一个数（' + 货架 + '）', !!m && !!货架 && m[1] === 货架);
 台.判('--dry 一个字节没写：那一趟自己说了（没落盘）', 报.includes('（没落盘）'));
+
+台.题('六、盘上两格逐字节一致，每一家的号在插件仓里都有一枚 tag 钉着');
+const 仓名 = {
+  'notes': 'Flow-Desk-plugin-Notes', 'schedule': 'Flow-Desk-plugin-Schedule',
+  'your-sentences': 'Flow-Desk-plugin-Your-Sentences', 'music-remote': 'Flow-Desk-plugin-Music-Remote',
+  'singbit-input-practice': 'Flow-Desk-plugin-Singbit-Input-Practice',
+  'why-not-write': 'Flow-Desk-plugin-Why-Not-Write', 'wnw-custom': 'Flow-Desk-plugin-WNW-Custom'
+};
+/* 逐件比字节（不比目录时间戳）：两格本来就该是同一批字节 */
+function 差件(a, b){
+  let n = 0;
+  for(const e of fs.readdirSync(a, { withFileTypes: true })){
+    const pa = a + '/' + e.name, pb = b + '/' + e.name;
+    if(!fs.existsSync(pb)){ n++; continue; }
+    if(e.isDirectory()) n += 差件(pa, pb);
+    else if(!fs.readFileSync(pa).equals(fs.readFileSync(pb))) n++;
+  }
+  return n;
+}
+for(const id of Object.keys(仓名)){
+  const 活 = ROOT + 'data/plugins/' + id, 原 = ROOT + 'data/plugins-factory/' + id;
+  let 号 = '';
+  try{ 号 = String(JSON.parse(fs.readFileSync(活 + '/manifest.json', 'utf8')).version || ''); }catch(e){ 号 = '（读不到）'; }
+  台.判(id + ' 两格逐字节一致（现在 ' + 号 + '）', 差件(活, 原) === 0);
+  const 尾 = 号.split('+build.')[1] || '';
+  let 钉 = '';
+  try{
+    钉 = execFileSync('git', ['rev-parse', '--short', 'v' + 号 + '^{commit}'],
+      { cwd: OUT + '/' + 仓名[id], encoding: 'utf8' }).trim();
+  }catch(e){ 钉 = ''; }
+  台.判(仓名[id] + ' 有 tag v' + 号 + ' 且钉在 ' + (尾 || '（号里没有短哈希）') + '（tag 指向：' + (钉 || '没有这枚 tag') + '）', !!尾 && 钉 === 尾);
+}
 
 台.收尾();

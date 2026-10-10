@@ -37,7 +37,7 @@ const val = (f, d) => { const a = argv.find(x => x.startsWith(f + '=')); return 
 const DRY = has('--dry');
 const ONLY = val('--only', '').split(',').map(s => s.trim()).filter(Boolean);
 const MSG = val('--msg', '');
-const OUT = path.resolve(val('--out', 'D:/Programs/Flow-Desk-plugins'));
+export const OUT = path.resolve(val('--out', 'D:/Programs/Flow-Desk-plugins'));
 const GIT_NAME = 'LunarFeast';
 const GIT_MAIL = 'noreply@invalid';                           /* 保留域，投不到任何信箱 */
 
