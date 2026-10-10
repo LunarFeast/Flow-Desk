@@ -30,22 +30,16 @@ function 账(){
 /* 短哈希：环境变量优先（发布脚本传进来），没传就地问一次 git；问不到就留空 ——
    留空时号长成 1.0.0-alpha，还是一串合法号，只是认不出是哪一笔提交。
    ------------------------------------------------------------
-   问的不是「HEAD 是哪一笔」，而是「最后一次动过主程序自己那些代码的是哪一笔」。
-   他一句「内容、内容代码更新才有那个哈希值的增长」：改文档、加探针、写述职那些提交
-   不该让页面换名字 —— 从前按 HEAD 取，我提交一笔补正注释，页面就得跟着重生成一次、
-   尾巴上凭空长一枚新哈希，那个号已经不是"这一版是什么"的尺了。
-   列进来的这几棵就是主程序出门要带的代码：宿主页面那几棵 + 程序壳 + 页面骨架。
-   不列的：docs\ 和 pages\ 里的文稿（文字不是代码）、src\tools\（这台机器自己的工具，
-   探针和审查台不进页面）、那三家的源码（为写 / 组件定制 / 声笔练习不住在主仓的跟踪面里，
-   它们改了换的是那一家自己的号 —— 各仓用自己的哈希，他定的）。
-   要加一棵就动下面这一串，别在别处再写第二把尺。 */
-const 内容路径 = ['src/_fd', 'src/_shared', 'src/_build', 'src/pack', 'pages/template.html'];
+   他定的口径：「打包一次，build 后面那枚短哈希变一次」。所以真号是 src\_build\release.mjs 那一趟给的 ——
+   它每跑一次就先在主仓落一笔什么都不改的"发布"提交，拿那一笔的短哈希传进来：
+   打包 ↔ 提交 ↔ tag ↔ 号，四样一一对应。
+   本地自己跑 build.mjs（不走发布）拿的是 HEAD 那一笔，同一笔提交上重复生成会得到同一个号，
+   页面就地覆盖，不会凭空长号。 */
 function 哈希(){
   const 传 = String(process.env.FD_BUILD || '').trim();
   if(传) return 传.replace(/^build\./, '').slice(0, 12);
-  try{
-    return execFileSync('git', ['log', '-1', '--format=%h', '--', ...内容路径], { cwd:TREE, encoding:'utf8' }).trim();
-  }catch(e){ return ''; }
+  try{ return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd:TREE, encoding:'utf8' }).trim(); }
+  catch(e){ return ''; }
 }
 function 串(shell, pre, build){
   return shell + (pre ? '-' + pre : '') + (build ? '+build.' + build : '');

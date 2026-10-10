@@ -19,13 +19,14 @@ const rep = rd('src/_build/plugin-repos.mjs');
 const ver = rd('src/_build/version.mjs');
 const pub = rd('src/pack/publish.mjs');
 
-台.题('一、号只跟内容代码走（生成页面不该凭空长一枚哈希）');
-台.判('取哈希问的是"最后一次动过主程序代码的那一笔"，不是 HEAD', /git', \['log', '-1', '--format=%h'/.test(ver) && !/rev-parse', '--short', 'HEAD/.test(ver));
-台.判('参与判定的那几棵写在明面上的一串里（别处不许再写第二把尺）', /const 内容路径 = \[/.test(ver));
-台.判('这一串里含宿主、共用底子、构建那棵、程序壳和页面骨架',
-  ['src/_fd', 'src/_shared', 'src/_build', 'src/pack', 'pages/template.html'].every(p => ver.includes("'" + p + "'")));
-台.判('这台机器自己的工具不算内容（src/tools 不在那一串里）', !ver.includes("'src/tools'"));
-台.判('环境变量 FD_BUILD 仍然是第一优先（发布脚本传进来就用它）', /process\.env\.FD_BUILD/.test(ver));
+台.题('一、号：打包一次，尾巴那枚短哈希才变一次');
+台.判('取号那一格：环境变量 FD_BUILD 是第一优先（发布脚本传进来就用它）', /process\.env\.FD_BUILD/.test(ver));
+台.判('没传的时候退回 HEAD 那一笔（同一笔上重复生成不会凭空长号）', /rev-parse', '--short', 'HEAD/.test(ver));
+台.判('号里没有任何"自己加一"的计数器', !/下一号|落账/.test(ver));
+台.判('发布脚本每跑一次先落一笔"发布"提交当记号（源码一个字不改）', /'commit', '--allow-empty'/.test(rel) && /这一趟打包的记号/.test(rel));
+台.判('那一笔的短哈希就是这一趟的号，且传给打包', /主短 = git\(TREE, \['rev-parse', '--short', 'HEAD'\]\)/.test(rel) && /FD_BUILD: 主短/.test(rel));
+台.判('--dry 不落那一笔（看计划不長号）', rel.indexOf('if(DRY){\n  P(\'主程序') > 0);
+台.判('打包完把老页面清掉，只认 Flow_Desk_ 那一种名字（不碰文稿）', /rmSync\(path\.join\(格, n\)\)/.test(rel) && /\^Flow_Desk_/.test(rel));
 
 台.题('二、发布脚本那九条');
 台.判('① 主仓有没提交的改动就停下报清单（不替他提交主仓）', /status', '--porcelain'/.test(rel) && rel.includes('要么提交掉，要么这一轮别发'));

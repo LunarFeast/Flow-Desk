@@ -82,12 +82,19 @@ for(const job of REPOS){
             sha:后, 号: 后 ? 底号() + '+build.' + 后 : '' });
 }
 
-/* ---------- ③ 主程序这一支的号：来自主仓最后一次动过代码的那一笔 ---------- */
-const 主号 = 号();
-const 主短 = 主号.split('+build.')[1] || '';
-if(!主短) 停('主程序这一支号里那一段短哈希取不到（git 问不到、也没给 FD_BUILD）。');
-
-P('主程序 ' + 主号 + '（主仓那一笔：' + 主短 + '）');
+/* ---------- ③ 号：打包一次，尾巴那枚短哈希就变一次（他 2026-10-10 定的口径）----------
+   这一笔是这趟打包自己的记号：--allow-empty，源码一个字不改、不写临时文件、不回滚。
+   tag 钉在它身上 —— 打包 ↔ 提交 ↔ tag ↔ 号，四样一一对应。
+   --dry 不落这一笔，只报"号会在这一笔之后才定"。 */
+let 主号 = '', 主短 = '';
+if(DRY){
+  P('主程序 ' + 底号() + '+build.（这一趟会先落一笔"发布"提交，号从它身上取）');
+}else{
+  git(TREE, ['commit', '--allow-empty', '-q', '-m', '发布 ' + 底号() + ' · 这一趟打包的记号（源码一个字没改）']);
+  主短 = git(TREE, ['rev-parse', '--short', 'HEAD']);
+  主号 = 底号() + '+build.' + 主短;
+  P('主程序 ' + 主号 + '（这一趟打包那一笔：' + 主短 + '）');
+}
 for(const r of 家) P('  ' + r.repo.padEnd(40) +
   (r.会动 ? (DRY ? '会动' : (r.动了 ? '动了' : '比出来会动、铺完却没差别')) : '不动') + ' · ' +
   (DRY && r.会动 ? '这一趟铺完才定号' : (r.号 || '（这一棵还没有一笔）')));
@@ -115,6 +122,17 @@ const 跑 = (cmd, args) => {
    那条 zip 更新链撤了之后，publish 只管照着盘上那一层收，谁铺齐它不管：所以在这儿明着跑一次。 */
 跑(process.execPath, ['src/pack/build-app.mjs']);
 跑(process.execPath, ['src/pack/publish.mjs']);
+
+/* 老页面清掉：pages\ 里只留当前这一张。那一格同时是他的文稿目录，
+   所以只认 Flow_Desk_*.html 这一种名字，别的一个字不碰（从前攒下十七张老版本就是这么来的）。 */
+{
+  const 格 = path.join(TREE, 'pages'), 留 = 页名(主号), 删 = [];
+  for(const n of fs.readdirSync(格)){
+    if(!/^Flow_Desk_[\d][\w.+-]*\.html$/.test(n) || n === 留) continue;
+    try{ fs.rmSync(path.join(格, n)); 删.push(n); }catch(e){ 删.push('删不掉 ' + n); }
+  }
+  P('\n老页面清掉 ' + 删.length + ' 张（留的是 ' + 留 + '）' + (删.length ? '：\n  ' + 删.join('\n  ') : ''));
+}
 
 /* ---------- ⑤ 本地打 tag：号钉在哪一笔上，一一对应 ---------- */
 function 打tag(dir, name, 谁){
