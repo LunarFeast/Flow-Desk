@@ -3,7 +3,7 @@
   "name": "你的便签",
   "author": "Flow-Desk",
   "source": "内置出厂",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha+build.4f2219e",
   "minShell": "1.0.0",
   "host": [
     "fd"
