@@ -1,15 +1,22 @@
 /* Flow-Desk 的 Tauri 壳 · 第一版骨架（外46 起这条线开工，目标是换掉 Electron 那一层）
    ------------------------------------------------------------
-   这一棵现在只干三件事，都是为了让后面那一大摊搬得有地方落：
+   这一棵现在干四件事，都是为了让后面那一大摊搬得有地方落：
      ① 认得出这一棵树装在哪（外壳自己所在目录，不写死盘符）；
      ② 把当前版本号报给前端 —— 号由发布脚本当环境变量传进来（FD_VERSION / FD_BUILD），
         壳自己不去 git 取号，也不在这份配置里再钉一遍字面值：他定的口径是「打包 ↔ 提交 ↔ tag ↔ 号」
         一一对应，取号那一头归 src\_build\version.mjs；
-     ③ 开一张窗口。
-   通道名跟着现有主进程那一套写法用 ASCII（sys:、pack:……），中文只留在函数体和注释里。
-   还没搬的：主进程那 74 个通道、运行时那 6 份文件里的 21 处 Node 调用、故障真隔离、网格吸附。
+     ③ 开一张窗口；
+     ④ 文件读写那一组十颗通道（外46 三搬的第一组，纯判断在 fd_core、动手在 tauri_bind::fs_cmds）。
+   命令名这一头有个硬限制：Rust 函数名就是页面上 invoke 的那个串，里面不能有冒号，
+   所以现有主进程的「fs:read」这一类写法在壳里落成「fs_read」，冒号那道换算放在还没写的 JS 桥上做 ——
+   页面上请壳的那串字一个字都不改（他定的「前端原样保留」）。
+   还没搬的：主进程那 74 个通道里剩下的六十四颗、运行时那 6 份文件里的 21 处 Node 调用、故障真隔离、网格吸附。
    一条一条搬，每搬一条补一条闸。 */
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+#[path = "core/mod.rs"]
+mod fd_core;            // 四层里的第一层：纯判断（目录仍叫 core，模块名避开 Rust 自己那个 core）
+mod tauri_bind;          // 四层里的第三层：命令胶水与动磁盘的那一手
 
 use std::path::PathBuf;
 
@@ -44,7 +51,19 @@ fn shell_info() -> serde_json::Value {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![shell_info])
+        .invoke_handler(tauri::generate_handler![
+            shell_info,
+            tauri_bind::fs_cmds::fs_read,
+            tauri_bind::fs_cmds::fs_read_range,
+            tauri_bind::fs_cmds::fs_stat,
+            tauri_bind::fs_cmds::fs_write,
+            tauri_bind::fs_cmds::fs_append,
+            tauri_bind::fs_cmds::fs_mkdir,
+            tauri_bind::fs_cmds::fs_unlink,
+            tauri_bind::fs_cmds::fs_list,
+            tauri_bind::fs_cmds::fs_tree,
+            tauri_bind::fs_cmds::fs_read_text,
+        ])
         .run(tauri::generate_context!())
         .expect("Flow-Desk 的 Tauri 壳起不来");
 }

@@ -7,7 +7,7 @@
     (async () => {
       const el = document.getElementById('v');
       if (!api) { el.textContent = '还没接上壳的那一手（没带 withGlobalTauri）'; return; }
-      try { el.textContent = JSON.stringify(await api.invoke('外壳信息')); }
+      try { el.textContent = JSON.stringify(await api.invoke('shell_info')); }
       catch (e) { el.textContent = '问不动：' + e; }
     })();
   </script>

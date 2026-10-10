@@ -3,9 +3,11 @@
      node src/_tauri/build.mjs              编 release（GNU 三元组）
      node src/_tauri/build.mjs --debug      编 debug（快，看编译错够不够用）
      node src/_tauri/build.mjs --检查       只跑 cargo check（不出产物，最省时间）
+     node src/_tauri/build.mjs --测         只跑纯判断那一层的单元测试（不开窗、不产壳）
 
    为什么要有这一颗，而不是直接喊 cargo：这台机器上这三样必须一起设对，少一样就翻车 ——
-     · RUSTUP_HOME / CARGO_HOME 指到 D:\Rust，否则 rustup 按默认往 C 盘下一整套装具（2026-10-10 踩过，2.8 GB）；
+     · RUSTUP_HOME / CARGO_HOME 要指到 Rust 那两套工具链的家（这台机器上在哪，登记在不进仓的 src\tools\本地路径.cjs 里），
+       不指的话 rustup 按默认往系统盘下一整套装具（2026-10-10 踩过，2.8 GB）；
      · PATH 前面要放一套**齐的** mingw binutils：windows-sys / windows-result 这些走 raw-dylib 要 dlltool，
        而 rustup 那套只把它单独放在 self-contained 格里，缺 as / ld 同伴照样干活失败；
      · 三元组必须是 x86_64-pc-windows-gnu：微软那条路这台机器堵死（没有 link.exe，Git 又自带一个同名的 link 抢在前面）。
@@ -19,9 +21,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
 const DEBUG = argv.includes('--debug');
 const CHECK = argv.includes('--检查');
+const TEST = argv.includes('--测');
 
-/* 这三处位置是这台机器的事，写在一个不进仓的地方读 —— 跟 src\tools\本地路径.cjs 同一待遇；
-   那份还没登记 Tauri 这一格，所以先退回这几个默认值，量不出来就报清楚，别猜。 */
 /* 这三颗位置从「本地路径」那道取口来（它读不进仓的那份登记），这一份里不钉任何字面路径 ——
    钉了就把这台机器的盘符推到公开面上去了（外41 第五段那条规矩）。取不到就报清楚，别猜。 */
 const { Rust工具链, Rust包缓存, Rust链接件, 编译缓存 } = await import('../tools/本地路径.mjs');
@@ -42,12 +43,15 @@ const env = {
   CARGO_TARGET_DIR: 编译缓存 ? path.join(编译缓存, "flowdesk") : undefined,
   PATH: [MINGW, GNU, path.join(CARGO_HOME, 'bin'), process.env.PATH].join(path.delimiter),
 };
-const 活 = CHECK ? 'check' : 'build';
-const 参 = [活, ...(CHECK ? [] : ['--release']), '--target', 'x86_64-pc-windows-gnu'];
+const CARGO_TARGET = env.CARGO_TARGET_DIR;
+const 活 = TEST ? 'test' : (CHECK ? 'check' : 'build');
+const 参 = [活, ...(CHECK || TEST ? [] : ['--release']), '--target', 'x86_64-pc-windows-gnu'];
 console.log('cargo ' + 参.join(' ') + '\n  壳在 ' + HERE + '\n  binutils 取 ' + MINGW);
 const r = spawnSync('cargo', 参, { cwd: HERE, env, stdio: 'inherit' });
 if(r.status !== 0) process.exit(r.status || 1);
 if(CHECK){ console.log('check 过了（没出产物）'); process.exit(0); }
-const exe = path.join(HERE, 'target', 'x86_64-pc-windows-gnu', DEBUG ? 'debug' : 'release', 'flowdesk.exe');
+if(TEST){ console.log('纯判断那几颗测试跑完了（这一趟不开窗、不产壳）'); process.exit(0); }
+const 格 = CARGO_TARGET ? path.join(CARGO_TARGET, 'x86_64-pc-windows-gnu') : path.join(HERE, 'target', 'x86_64-pc-windows-gnu');
+const exe = path.join(格, DEBUG ? 'debug' : 'release', 'flowdesk.exe');
 try{ console.log('产物 ' + exe + ' · ' + fs.statSync(exe).size.toLocaleString('en-US') + ' 字节'); }
 catch(e){ console.log('说编完了，可在 ' + exe + ' 没找到那颗 exe —— 报一下，别当成功'); process.exit(1); }
