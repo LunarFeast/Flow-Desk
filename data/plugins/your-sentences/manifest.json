@@ -1,0 +1,23 @@
+{
+  "id": "your-sentences",
+  "name": "你的句子",
+  "author": "Flow-Desk",
+  "source": "内置出厂",
+  "version": "1.0.0",
+  "minShell": "1.0.0",
+  "host": [
+    "fd"
+  ],
+  "entry": [
+    "main.js"
+  ],
+  "order": 40,
+  "icon": "❝",
+  "type": "widget",
+  "desc": "钉住的一句 + 一库句子，随机抽",
+  "first": 30,
+  "dataKeys": [
+    "your-sentences.json"
+  ],
+  "kvKeys": []
+}
