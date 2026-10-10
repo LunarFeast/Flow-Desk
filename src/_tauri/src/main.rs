@@ -51,8 +51,12 @@ fn shell_info() -> serde_json::Value {
 
 fn main() {
     tauri::Builder::default()
+        /* 挑文件与挑目录那两道框走官方那颗对话框插件的 Rust 接口（不是 JS 那一头，页面碰不到它） */
+        .plugin(tauri_plugin_dialog::init())
         /* 窗口这一组要记着的三件事：当前缩放、关窗口那张框问出去没有、是不是已经在收摊 */
         .manage(tauri_bind::win_cmds::窗口手::default())
+        /* 探针预置的那串挑好的（环境变量 FD_AUTOTEST_PICK），起壳时取一次 */
+        .manage(tauri_bind::pick_cmds::对话框手::起())
         /* 关窗口先拦下来问页面；窗口形状一变就回报 win:state */
         .on_window_event(tauri_bind::win_cmds::窗口事件)
         /* 托盘：那张框上「收进托盘」那条要有地方去，左键露/缩、右键开单 */
@@ -74,6 +78,8 @@ fn main() {
             tauri_bind::fs_cmds::fs_read_text,
             tauri_bind::win_cmds::win_ctl,
             tauri_bind::win_cmds::win_close_answer,
+            tauri_bind::pick_cmds::fsa_pick_files,
+            tauri_bind::pick_cmds::fsa_pick_dir,
         ])
         .run(tauri::generate_context!())
         .expect("Flow-Desk 的 Tauri 壳起不来");

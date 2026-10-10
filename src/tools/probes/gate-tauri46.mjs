@@ -137,4 +137,38 @@ for(const 装 of ['.manage(', '.on_window_event(', '.setup('])
   台.判('装上了 ' + 装, 壳.includes(装));
 台.判('拦关闭走的是 WindowEvent 里的 CloseRequested', 窗.includes('WindowEvent::CloseRequested'));
 
+台.题('十三、挑文件与挑目录那两颗');
+const 挑 = 壳里('src/tauri_bind/pick_cmds.rs');
+for(const c of ['fsa:pickFiles', 'fsa:pickDir']){
+  const b = 桥名(c);
+  台.判(c + ' → ' + b + ' 在壳里有对应的一颗', 挑.includes('fn ' + b) && 壳.includes('pick_cmds::' + b));
+}
+台.判('回的还是那一格 paths（取消就回空串，跟主进程那边同一形状）',
+  main.includes('return { paths:[] }') && 挑.includes('pub struct 一批路径 { paths: Vec<String> }'));
+台.判('命令名两头只差冒号与驼峰这一道换算（壳里没有第三种拼法）',
+  !/fn fsaPick|fn pick_files|fn pickFiles/.test(挑));
+
+台.题('十四、探针预置与"记住上次挑过哪里"两道都跟着搬过来了');
+台.判('预置那串环境变名两头同一串（FD_AUTOTEST_PICK）',
+  main.includes('FD_AUTOTEST_PICK') && 挑.includes('FD_AUTOTEST_PICK'));
+台.判('记路径那一份文件两头同名（ui-paths.json）', main.includes('ui-paths.json') && 挑.includes('ui-paths.json'));
+台.判('记的是"挑中那一样自己是不是目录"，不是调用方说要目录',
+  挑.includes('std::fs::metadata(挑中)') && /归格\(挑中, 是目录\)/.test(挑));
+
+台.题('十五、类型筛选那一条的规则两头同一份');
+台.判('只认带点的后缀、去重、合成一条叫「选定类型」',
+  main.includes("startsWith('.'") && 判断.includes('strip_prefix') && 判断.includes('选定类型'));
+台.判('这条规则住在纯判断那一格（不在动手那一格里再抄一遍）',
+  判断.includes('pub fn 筛选') && !挑.includes('fn 筛选'));
+
+台.题('十六、对话框走的是官方那颗插件的 Rust 接口');
+台.判('Cargo.toml 里登记了 tauri-plugin-dialog', /tauri-plugin-dialog/.test(清单));
+台.判('main.rs 里把那颗插件 init 上了', 壳.includes('tauri_plugin_dialog::init()'));
+台.判('动对话框的那一手在第三层，判断仍在纯判断那一格',
+  挑.includes('blocking_pick_files') && 挑.includes('blocking_pick_folder'));
+
+台.题('十七、没有对等接口的那一条要写着，不许当成已实现');
+台.判('主进程那边挑目录的框有"新建文件夹"那一档（createDirectory）', main.includes('createDirectory'));
+台.判('壳这一份里明写了这一档在 Rust 这头没有对等接口', 挑.includes('createDirectory'));
+
 台.收尾();

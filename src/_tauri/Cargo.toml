@@ -15,3 +15,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# 挑文件与挑目录那两道对话框：走官方那颗插件的 Rust 接口（app.dialog().file()），
+# 页面上那串 window.showOpenFilePicker 由还没写的 JS 桥顶上去，页面本身不改。
+tauri-plugin-dialog = "2"
