@@ -71,6 +71,16 @@ const VER = { fd: 号() };
 const 当前页 = 页名(VER.fd);
 if(!fs.existsSync(path.join(PAGES, 当前页)))
   throw new Error('pages\\ 里没有当前这一支号的页（' + 当前页 + '）—— 先跑 node src\\_fd\\build.mjs 生成，再来打包');
+/* 每一家插件的版本由发布脚本传进来（各仓自己那一笔的短哈希那一串，见 src\_build\release.mjs）。
+   说明书里那一格 version 是老版本 —— 打包这一趟不写它也不取它（他 2026-10-10 定）。
+   没传这一格（本地自己跑 publish 看清单）就照说明书那一格摆。 */
+const 递来的家 = (() => {
+  const raw = String(process.env.FD_PLUGINS || '').trim();
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }
+  catch(e){ throw new Error('FD_PLUGINS 传进来的不是合法 JSON：' + e.message); }
+})();
+
 /* 当前这一支号那一张进发布物，其余老版本都不带 */
 function superseded(rel){
   if(!/\.html$/.test(rel)) return false;
@@ -147,7 +157,9 @@ for(const p of packs){
   const buf = packZip(p);
   const m = p.manifest;
   shelf.push({
-    id: m.id, name: m.name, version: m.version, desc: m.desc || '',
+    id: m.id, name: m.name, desc: m.desc || '',
+    /* 版本号：发布脚本传进来的那一家自己的那一串优先；没传才退回说明书那一格 */
+    version: (递来的家 && 递来的家[m.id] && 递来的家[m.id].version) || m.version,
     author: m.author || '', source: m.source || '', icon: m.icon || '',
     host: m.host || ['fd'], order: m.order || 100, minShell: m.minShell || '0',
     file: 'plugins/' + m.id + '.zip',
@@ -175,6 +187,8 @@ const label = 'Flow-Desk 便携版 ' + VER.fd;
 made.set('flow-desk-install.json', Buffer.from(JSON.stringify({
   kind: 'flow-desk-tree', label: label, made: new Date().toISOString(),
   versions: VER, packs: shelf.map(p => p.id),
+  /* 每一家插件这一趟带的是哪一串号、它要的外壳最低是哪一号（发布脚本传进来的，不取说明书那一格） */
+  plugins: shelf.map(p => ({ id:p.id, name:p.name, version:p.version, 兼容外壳:p.minShell })),
   note: '这一棵树是首装摊出来的：整文件夹删掉就算卸载，不写注册表。一个插件都不带（插件分开各自发布），换新版本再双击一颗新的 setup 指到同一棵就是覆盖升级。'
 }, null, 2) + '\n', 'utf8'));
 made.set('安装说明.txt', Buffer.from([

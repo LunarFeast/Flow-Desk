@@ -14,32 +14,37 @@
    提交身份：作者名用 GitHub 上那个，邮箱一律写 noreply@invalid（.invalid 是保留域，
    投不到任何信箱），所以公开面上读不出真邮箱。这台机器的 git 全局配置一个字不动。
 
-   推不推：这台工具到「提交造好、远端挂上」为止，不跑 git push —— 凭据不过我的手。
+   提交形状（他 2026-10-10 定）：正常多条提交，不压成单颗、不 amend、不 force-push ——
+   细粒度留着方便查 bug。这一家的内容和主仓那一棵逐字节比得出有没有动，没动就不提交。
+
+   推不推：这一台只管「铺 + 提交 + 挂远端」，推那一步在 src\_build\release.mjs 里
+   （打包成功了才推，哪一棵推砸了就报哪一棵）。凭据还是不经过我的手：用的是这台机器
+   已经配好的 git credential helper，脚本只喊 git push，不读、不写、不存任何令牌。
    ============================================================ */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 const HERE = import.meta.dirname;
-const TREE = path.resolve(HERE, '..', '..');                 /* Flow-Desk 那一棵树 */
-const argv = process.argv.slice(2);
+export const TREE = path.resolve(HERE, '..', '..');           /* Flow-Desk 那一棵树 */
+/* 这一份既是命令行工具，也被 src\_build\release.mjs 当零件用：命令行那一段只在"直接跑我"时才执行 */
+const 被当命令跑 = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+const argv = 被当命令跑 ? process.argv.slice(2) : [];
 const has = f => argv.includes(f);
 const val = (f, d) => { const a = argv.find(x => x.startsWith(f + '=')); return a ? a.slice(f.length + 1) : d; };
 const DRY = has('--dry');
 const ONLY = val('--only', '').split(',').map(s => s.trim()).filter(Boolean);
+const MSG = val('--msg', '');
 const OUT = path.resolve(val('--out', 'D:/Programs/Flow-Desk-plugins'));
 const GIT_NAME = 'LunarFeast';
 const GIT_MAIL = 'noreply@invalid';                           /* 保留域，投不到任何信箱 */
 
-/* 版本号跟整条链同一颗取法（号只在 src\_build\version.json 那一处，串法在 version.mjs 里） */
-import { 号 as 版本 } from './version.mjs';
-const 号 = 版本();
-
 const pack = id => 'data/plugins/' + id;                   /* 一家插件整格 */
 const COMMON = ['LICENSE', 'THIRD-PARTY.txt'];                /* 两份声明跟着走：仓库没声明 = 默认保留所有权利 */
 
-const REPOS = [
+export const REPOS = [
   { id:'notes',                 repo:'Flow-Desk-plugin-Notes',                 中文:'你的便签',   from:[pack('notes')] },
   { id:'schedule',              repo:'Flow-Desk-plugin-Schedule',              中文:'日程',       from:[pack('schedule')] },
   { id:'your-sentences',        repo:'Flow-Desk-plugin-Your-Sentences',        中文:'你的句子',   from:[pack('your-sentences')] },
@@ -71,7 +76,7 @@ function listFrom(rel){
   }
   return out.sort();
 }
-function filesOf(job){
+export function filesOf(job){
   const set = new Set(COMMON);
   for(const rel of job.from){
     const got = listFrom(rel);
@@ -117,7 +122,7 @@ function scanLeaks(list){
 }
 
 /* ---------- git ---------- */
-function git(cwd, args){
+export function git(cwd, args){
   return execFileSync('git', args, { cwd, encoding:'utf8',
     env:{ ...process.env, GIT_AUTHOR_NAME:GIT_NAME, GIT_AUTHOR_EMAIL:GIT_MAIL,
           GIT_COMMITTER_NAME:GIT_NAME, GIT_COMMITTER_EMAIL:GIT_MAIL },
@@ -159,7 +164,10 @@ function mirror(list, dest){
   return del;
 }
 
-/* ---------- 跑 ---------- */
+/* ---------- 跑 ----------
+   只有"直接跑我"才执行下面这一整段；被 src\_build\release.mjs 当零件 import 的时候一个字都不跑 ——
+   从前这里没设闸，release.mjs 一 import 就把七家全铺全提交了一遍，本地凭空多出一笔。 */
+if(被当命令跑){
 let 报错 = [];
 const 计划 = [];
 for(const job of REPOS){
@@ -191,14 +199,12 @@ for(const { job, list, bytes } of 计划){
   if(!fs.existsSync(path.join(dir, '.git'))) git(dir, ['init', '-q', '-b', 'main']);
   git(dir, ['add', '-A']);
   const 老 = hasHead(dir);
-  /* 上一版（直接 commit 不 amend）留下的两笔：先软回没有爹那一颗，再往那一颗里折。
-     口径和主仓一样 —— 每棵公开面只许一颗没有爹的提交。 */
-  if(老 && Number(git(dir, ['rev-list', '--count', 'HEAD'])) > 1)
-    git(dir, ['reset', '-q', '--soft', git(dir, ['rev-list', '--max-parents=0', 'HEAD'])]);
+  /* 正常多条提交（他 2026-10-10 定的口径）：这一家这一轮有改动，就在它自己那一棵上另起一笔 ——
+     不折、不 amend、不 force，细粒度留着方便查 bug；一个字没变就连一笔都不多。 */
   let 提交 = '没变化';
   try{ git(dir, ['diff', '--cached', '--quiet']); }
   catch(e){
-    const 头 = job.repo + ' ' + 号 + ' · 首次提交';
+    const 头 = MSG || job.repo + ' · 同步主仓这一份';
     const 身 = [
       头, '',
       '这一棵是 Flow-Desk 的「' + job.中文 + '」那一家，内容是从主仓那棵树里按原路径挑出来的 ' + list.length + ' 份（' + kb + ' KB）：',
@@ -208,15 +214,8 @@ for(const { job, list, bytes } of 计划){
       '授权：见根上 LICENSE（软件和插件只允许个人使用与研究，暂时不允许分发、修改、重新打包）与 THIRD-PARTY.txt。',
     ].join('\n');
     fs.writeFileSync(path.join(dir, '.git', 'COMMIT_MSG'), 身, 'utf8');
-    /* 每棵只留一颗没有爹的提交，和主仓同一个口径：已经有 HEAD 就往那一颗里折，
-       不另起一笔 —— 上一版这里直接 commit，结果第二次跑给七棵各多长了一颗提交。 */
-    if(老) git(dir, ['commit', '-q', '--amend', '--reset-author', '-F', '.git/COMMIT_MSG']);
-    else    git(dir, ['commit', '-q', '-F', '.git/COMMIT_MSG']);
-    提交 = 老 ? '折回首次提交' : '造了首次提交';
-    /* 折一次长一枚游离提交 + 一条 reflog，跟着清掉（和主仓那两句一样） */
-    git(dir, ['reflog', 'expire', '--expire=now', '--expire-unreachable=now', '--all']);
-    git(dir, ['gc', '--prune=now', '-q']);
-    try{ fs.rmSync(path.join(dir, '.git', 'ORIG_HEAD')); }catch(e){}
+    git(dir, ['commit', '-q', '-F', '.git/COMMIT_MSG']);
+    提交 = 老 ? '新提交一笔' : '造了首次提交';
   }
   try{ git(dir, ['remote', 'add', 'origin', url]); }
   catch(e){ git(dir, ['remote', 'set-url', 'origin', url]); }
@@ -225,4 +224,5 @@ for(const { job, list, bytes } of 计划){
     (del.length ? ' · 删掉多出来的 ' + del.length + ' 份' : '') + ' · ' + sha);
 }
 if(DRY) console.log('\n（--dry：什么都没写。七家合计 ' + 计划.reduce((n, p) => n + p.list.length, 0) + ' 份）');
-else console.log('\n铺在 ' + OUT + ' 下面，远端都挂好了。推的那一步我不跑（凭据不过我的手）。');
+else console.log('\n铺在 ' + OUT + ' 下面，远端都挂好了。推那一步在发布脚本 release.mjs 里，打包成了才推。');
+}
