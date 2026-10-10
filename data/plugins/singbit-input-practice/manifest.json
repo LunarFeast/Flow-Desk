@@ -3,7 +3,7 @@
   "name": "声笔输入法练习",
   "author": "Flow-Desk",
   "source": "内置出厂",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha+build.37c45ae",
   "minShell": "1.0.0",
   "host": [
     "fd"
