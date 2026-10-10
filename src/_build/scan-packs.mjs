@@ -20,7 +20,7 @@ import tree from './tree.cjs';
 
 /* 禁用名 → 该走的通道（这句话原样打进报错里，所以写明白） */
 export const FORBID = {
-  FD_APP: '要后台通道就在说明书 appChannels 里点名，运行时用 ctx.app',
+  FD_APP: '要后台通道就在插件清单 appChannels 里点名，运行时用 ctx.app',
   dataRead: 'ctx.store', dataWrite: 'ctx.store', dataList: 'ctx.store',
   readPageFile: '不开放（这是宿主自己的文件通道）', writePageFile: '不开放', writePageBytes: '不开放',
   delPageFile: '不开放', pagePath: '不开放', pathOf: '不开放',
@@ -37,8 +37,8 @@ export const FORBID = {
   Packs: 'ctx.pack', PackOps: '不开放（装卸归宿主）', PackLoader: '不开放', PackCtx: '不开放',
   PACK_META: 'ctx.pack', FD_PACKS: 'ctx.pack',
   IDB: '数据必须经宿主落明文', localStorage: '数据必须经宿主落明文', indexedDB: '数据必须经宿主落明文',
-  registerWidget: '登记由加载器按说明书 type 做，插件自己不调',
-  registerTool: '登记由加载器按说明书 type 做，插件自己不调',
+  registerWidget: '登记由加载器按插件清单 type 做，插件自己不调',
+  registerTool: '登记由加载器按插件清单 type 做，插件自己不调',
   Gen: '配方就是 export default 那一份，登记由加载器做',
   icoMarkup: 'ctx.icon', Ico: 'ctx.icon', Phrase: 'ctx.phrase',
   eval: '不许运行时造代码', Function: '不许运行时造代码'

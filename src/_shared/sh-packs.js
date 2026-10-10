@@ -3,17 +3,17 @@
 
    外壳是一副空骨架，功能全在 data\plugins\<id>\ 里。
    页面开机时由加载器（_shared/sh-load.js）按 off.json 那份「卸掉的」名单，
-   一家家 import 各自的 main.js，顺手把说明书（id / 名字 / 作者 / 来源 / 版本 / 数据文件）
-   填进下面这份 PACK_META —— 说明书不再拼进产物，名单里没它、这一轮就没加载它，功能就没有。
+   一家家 import 各自的 main.js，顺手把插件清单（id / 名字 / 作者 / 来源 / 版本 / 数据文件）
+   填进下面这份 PACK_META —— 插件清单不再拼进产物，名单里没它、这一轮就没加载它，功能就没有。
 
    这一节只提供三种底座能力：
-   1) Packs      —— 问"这个功能装了吗 / 它的说明书怎么写"
+   1) Packs      —— 问"这个功能装了吗 / 它的插件清单怎么写"
    2) SetupTabs  —— 设置面板左边那一列标签的登记表，功能想加一档就来自注册，
                     外壳不再硬写一张名单（硬写的名单会把功能的代码拽进外壳）
    3) 共用小工具  —— 色位、组件名这些被两个以上功能借走的东西，放底座，不放某个包里
    ============================================================ */
 
-/* 说明书表：运行时由加载器一家家填进来（填的字段和构建那把尺 _build/packs.mjs 同一个口径）。
+/* 插件清单表：运行时由加载器一家家填进来（填的字段和构建那把尺 _build/packs.mjs 同一个口径）。
    没加载上的时候它就是空的（这一轮名单里没有这几家），
    空的意思是"什么都不拦"，方便直接改代码玩，不至于把外壳跑不起来 */
 const PACK_META = {};
@@ -40,7 +40,7 @@ const Packs = {
     for(const m of this.list()) for(const k of (m.dataKeys || [])) if(!out.includes(k)) out.push(k);
     return out;
   },
-  /* 名字：包的说明书最准，其次问注册表，最后退回 id 本身 */
+  /* 名字：包的插件清单最准，其次问注册表，最后退回 id 本身 */
   name(id){
     const m = this.info(id); if(m && m.name) return m.name;
     const t = (typeof Registry !== 'undefined' ? Registry.get('tool-' + id) : null)
@@ -370,7 +370,7 @@ const PackOps = {
       '包还收在插件库里 · 想用了在「添加插件」里装回来就是。'));
     if(all.length) box.appendChild(h('label', { class:'wnw-switch' },
       [cb, h('span', {}, '同步清除数据 · ' + all.length + ' 份（' + all.join('、') + '）')]));
-    else box.appendChild(h('div', { class:'wnw-hint' }, '这一家没在说明书里点名要存什么东西，数据这块没什么可清的。'));
+    else box.appendChild(h('div', { class:'wnw-hint' }, '这一家没在插件清单里点名要存什么东西，数据这块没什么可清的。'));
     H().dlg.open('卸掉插件 · ' + nm, box, [
       h('button', { class:'wnw-btn primary', onclick:async () => {
         H().dlg.close();
@@ -388,16 +388,16 @@ const PackOps = {
     }}, txt);
     const box = h('div', { class:'wnw-col' });
     box.appendChild(h('div', { class:'wnw-hint' },
-      '挑一样东西放进来：压好的压缩包，或者解开的那个文件夹（里面得带着说明书）。'));
+      '挑一样东西放进来：压好的压缩包，或者解开的那个文件夹（里面得带着插件清单）。'));
     box.appendChild(h('div', { class:'wnw-hint' },
       '收进来一律是解开的样子（压缩包只是运输形状，进门就摊开，方便直接看每一段代码、就地改）。同名已经在那儿就退回不动，不悄悄盖掉你原有的包。导入即装上：写进名单，然后刷新这一页。'));
     H().dlg.open('导入插件', box, [
-      btn('选一个 zip', 'zip', '压好的成品包，一个文件带齐说明书和代码'),
+      btn('选一个 zip', 'zip', '压好的成品包，一个文件带齐插件清单和代码'),
       btn('选一个文件夹', 'dir', '解开的样子：本地开发就是这样改的'),
       h('button', { class:'wnw-btn mini', onclick:() => { H().dlg.close(); if(after) after(); } }, '取消')
     ]);
   },
-  /* 「这一家是什么来头」：说明书里那几项摆成一页 —— 作者和来源是包里自己带的标记，
+  /* 「这一家是什么来头」：插件清单里那几项摆成一页 —— 作者和来源是包里自己带的标记，
      导入进来的第三方包就靠这两行认人。没装的那一个走 diskInfoAsk，形状同一页。 */
   infoAsk(id){
     const m = Packs.info(id) || {};

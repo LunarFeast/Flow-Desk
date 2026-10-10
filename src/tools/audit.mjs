@@ -152,8 +152,8 @@ head('三、四棵源码树里没被生成脚本点名的 .js（拼不进产物�
   if(!dead) say('  ✓ 每一份都被点名了（宿主这边 ' + named.size + ' 个名字，为写 ' + namedW.size + ' 个，组件定制 ' + namedC.size + ' 个）');
 }
 
-/* ---------- 四、说明书点的随行文件在不在 + 程序那一层干不干净 ---------- */
-head('四、插件说明书 assets 点的随行文件 · 包里在不在（出厂那一格已经撤了，见外43）');
+/* ---------- 四、插件清单点的随行文件在不在 + 程序那一层干不干净 ---------- */
+head('四、插件清单 assets 点的随行文件 · 包里在不在（出厂那一格已经撤了，见外43）');
 {
   const packs = path.join(SRC_DATA, 'plugins');
   let n = 0;
@@ -165,7 +165,7 @@ head('四、插件说明书 assets 点的随行文件 · 包里在不在（出�
     for(const k of Object.keys((m && m.assets) || {})){
       const rel = path.basename(String(m.assets[k]));
       n++;
-      if(!exists(path.join(packs, e.name, rel))) bad(e.name + ' 说明书说 assets.' + k + ' 是 ' + rel + '，包里没这一份');
+      if(!exists(path.join(packs, e.name, rel))) bad(e.name + ' 插件清单说 assets.' + k + ' 是 ' + rel + '，包里没这一份');
     }
   }
   if(!n) say('  · 没有任何包点随行文件');

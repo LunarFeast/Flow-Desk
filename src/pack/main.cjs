@@ -875,12 +875,12 @@ ipcMain.handle('img:open', async (e, p) => {
    所以子进程脚本里现编译一段 C# 去挂（探针验过：切歌 / 暂停 / 进度都在十几毫秒内出事件行）。
    没有变化时子进程就阻塞在 ReadLine，一个定时器都不装：页面拿事件里的 pos + 自己的墙上时钟插值，
    只有插值跑到时长之外（漂过 0.5 秒）才回来补读一次。
-   监听跟着音乐遥控器走：这个脚本住在包里（说明书 assets.watcher 点的名），名单里没这个包就不起。
+   监听跟着音乐遥控器走：这个脚本住在包里（插件清单 assets.watcher 点的名），名单里没这个包就不起。
    包可能是解开的文件夹、也可能是一个 zip，而 powershell 只认盘上的一个文件，所以用之前先把它
    落地一份到 %LOCALAPPDATA%\Flow-Desk\watcher\ —— 和底下 players\ 那本小抄同一个约定，
    三个 exe 共用一份，内容一模一样就不重写。 */
 const WDIR = () => path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'Flow-Desk', 'watcher');
-/* 这一家说明书里 assets.<key> 指的是包里哪个文件；包里没带 / 包不在这棵树上时，
+/* 这一家插件清单里 assets.<key> 指的是包里哪个文件；包里没带 / 包不在这棵树上时，
    退回 app 层自带的那一份兜底副本（整个文件夹拷去别的电脑、还没建过 data\plugins\ 的那种）。 */
 function packAssetOf(id, key){
   const p = packScan().packs.find(x => x.id === id);
@@ -1300,7 +1300,7 @@ ipcMain.handle('media:flag', (e, k, v) => playFlagSet(k, v));
 /* ---------- 给本地播放器装监听插件 ----------
    MusicBee 本体不往系统的媒体控件写任何东西（一个字都不发），所以光靠 SMTC 读不到它。
    补上的办法是给它装一个插件：插件文件跟着音乐遥控器那个插件走（data\plugins\music-remote\mb_FlowDesk.dll，
-   说明书里 assets.bridge 点的名），要用的时候先从包里落到 %LOCALAPPDATA%\Flow-Desk\watcher\，
+   插件清单里 assets.bridge 点的名），要用的时候先从包里落到 %LOCALAPPDATA%\Flow-Desk\watcher\，
    这个按钮做的事就是 —— 找出 MusicBee 装在哪，把 dll 拷进它的 Plugins\，同名先留 .bak，
    然后告诉他重启 MusicBee。它调的是 MusicBee 自己的插件 API，所以只治 MusicBee 一家；
    别的播放器（Spotify / PotPlayer / 媒体播放器 / 网页播放器）本来就自己发 SMTC，不需要插件。
@@ -1369,7 +1369,7 @@ ipcMain.handle('media:bridge', async () => {
     return { ok:false, msg:'音乐遥控器这个插件没装，插件文件就在它的包里。去「添加插件」把它装回来再按这个按钮。' };
   const from = landAsset('music-remote', 'bridge');
   if(!from)
-    return { ok:false, msg:'音乐遥控器的包里没带插件文件（说明书 assets.bridge 那个），这一份包不完整' };
+    return { ok:false, msg:'音乐遥控器的包里没带插件文件（插件清单 assets.bridge 那个），这一份包不完整' };
   const dir = await mbDir();
   if(!dir)
     return { ok:false, found:false,
@@ -1760,14 +1760,14 @@ function refreshLists(){
     }
   });
 }
-/* 一个包摊平后的样子：id + 说明书 + 它是文件夹还是 zip + 文件列表（文件夹） */
+/* 一个包摊平后的样子：id + 插件清单 + 它是文件夹还是 zip + 文件列表（文件夹） */
 function packOne(dir, name, kind){
   const up = require('./zip-read.cjs');
   if(kind === 'dir'){
     const f = path.join(dir, name, 'manifest.json');
     if(!fs.existsSync(f)) return null;
     let m = null;
-    try{ m = JSON.parse(fs.readFileSync(f, 'utf8')); }catch(e){ return { id:name, kind, error:'说明书读不成那份格式：' + e.message }; }
+    try{ m = JSON.parse(fs.readFileSync(f, 'utf8')); }catch(e){ return { id:name, kind, error:'插件清单读不成那份格式：' + e.message }; }
     return { id:name, kind, manifest:m, files:fs.readdirSync(path.join(dir, name)) };
   }
   let buf = null;
@@ -1776,7 +1776,7 @@ function packOne(dir, name, kind){
   try{
     const items = up.zipIndex(buf);
     const it = items.find(x => x.name === 'manifest.json');
-    if(!it) return { id:name, kind, error:'压缩包里没带说明书' };
+    if(!it) return { id:name, kind, error:'压缩包里没带插件清单' };
     m = JSON.parse(up.unzipEntry(buf, it).toString('utf8'));
   }catch(e){ return { id:name, kind, error:'zip 读不动：' + String((e && e.message) || e) }; }
   return { id:name, kind, manifest:m };
@@ -1841,7 +1841,7 @@ function packHas(id){
   return !s.off.includes(name);
 }
 /* 从包里取一个文件的原始字节：文件夹直接读，zip 从里头拆出来（两个 exe 都能看到包里那份底本）。
-   rel 是说明书里写的相对路径（斜杠分隔），带 .. 或者空段的一律不认，别让它顺着爬出包外。 */
+   rel 是插件清单里写的相对路径（斜杠分隔），带 .. 或者空段的一律不认，别让它顺着爬出包外。 */
 function packRaw(id, rel){
   const clean = String(rel || '').replace(/\\/g, '/').replace(/^\/+/, '');
   if(!clean || clean.split('/').some(s => s === '..' || s === '.' || !s)) return null;
@@ -1909,7 +1909,7 @@ function packManifestOf(buf){
   const up = require('./zip-read.cjs');
   const items = up.zipIndex(buf);
   const it = items.find(x => x.name === 'manifest.json');
-  if(!it) throw new Error('这个压缩包里没带说明书，不像一个插件');
+  if(!it) throw new Error('这个压缩包里没带插件清单，不像一个插件');
   const m = JSON.parse(up.unzipEntry(buf, it).toString('utf8'));
   return { items, manifest:m };
 }
@@ -2009,10 +2009,10 @@ ipcMain.handle('pack:import', (e, payload) => {
     }
     if(st.isDirectory()){
       const f = path.join(src, 'manifest.json');
-      if(!fs.existsSync(f)) return bad('这个文件夹里没带说明书，不像一个插件');
+      if(!fs.existsSync(f)) return bad('这个文件夹里没带插件清单，不像一个插件');
       let m = null;
       try{ m = JSON.parse(fs.readFileSync(f, 'utf8')); }
-      catch(err){ return bad('说明书读不成那份格式：' + String((err && err.message) || err)); }
+      catch(err){ return bad('插件清单读不成那份格式：' + String((err && err.message) || err)); }
       const id = String(m.id || path.basename(src)).trim();
       if(!/^[A-Za-z0-9._-]+$/.test(id)) return bad('包名不干净，不敢落地：' + id);
       const to = path.join(dir, id);
@@ -2032,10 +2032,10 @@ ipcMain.handle('pack:import', (e, payload) => {
     return bad('挑的东西既不是文件也不是文件夹');
   }catch(err){ return bad('导入失败：' + String((err && err.message) || err)); }
 });
-/* 卸一个包时勾了「同步清除数据」：按说明书点名的那几个明文文件删掉（数据层里，不碰包本身）。
+/* 卸一个包时勾了「同步清除数据」：按插件清单点名的那几个明文文件删掉（数据层里，不碰包本身）。
    包里的东西一概不删 —— 装得回来靠的就是它还在。
    基准是 DATA_DIR()（= 这个宿主的用户目录，data\userdata-fd|wnw|rp），不是 data\ 那一层：
-   说明书里 dataKeys 写的就是「notes.json」这种用户目录里的相对名，Store 也按这个位置读写。
+   插件清单里 dataKeys 写的就是「notes.json」这种用户目录里的相对名，Store 也按这个位置读写。
    第二个参数 shared 走另一把尺：sharedKeys 点的是数据层根（data\）那一侧、跟着功能走的东西
    （词库底本那种：<包名>-bank/data.txt）。它不在用户目录里，只能在 data\ 底下，
    而且 plugins\ 那一层和名单本身绝不碰。 */
@@ -2306,9 +2306,9 @@ function aboutBackups(){
   return list.slice(0, 5);
 }
 ipcMain.handle('about:info', () => {
-  /* 装着的那几家一家一行，号取的是运行时真正加载的那一份说明书 ——
+  /* 装着的那几家一家一行，号取的是运行时真正加载的那一份插件清单 ——
      发布那一趟（publish）已经把这一格换成打出去那一次的号，所以这儿显示的就是他手上这一家是哪一笔。
-     没说明书的那一格（off.json 那种）不列，不编一个号出来。 */
+     没插件清单的那一格（off.json 那种）不列，不编一个号出来。 */
   let 家 = [];
   try{
     家 = packScan().packs.filter(p => p.manifest).map(p => ({

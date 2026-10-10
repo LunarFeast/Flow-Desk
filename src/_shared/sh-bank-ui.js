@@ -43,7 +43,7 @@ class BankSheet{
     shSplit(cols, this.listBox, shSplitKey('bank.' + this.which), { def:.3, min:.18, max:.55 });
     await this.refresh();
   }
-  /* 词库文件这会儿读不到（这一家的底本没在说明书里点名，或者那份还没建起来）：给一句白话和一个选文件的入口 */
+  /* 词库文件这会儿读不到（这一家的底本没在插件清单里点名，或者那份还没建起来）：给一句白话和一个选文件的入口 */
   noFile(msg){
     const pick = typeof H().pick === 'function';
     this.dlg().open('改词库 · ' + Banks.name(this.which), h('div', { class:'wnw-col', style:'padding:8px 0;min-width:min(420px,80vw)' }, [

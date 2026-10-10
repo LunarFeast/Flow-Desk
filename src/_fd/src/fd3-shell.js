@@ -18,7 +18,7 @@ const GRID_STEP = 2;
 const snapQ = (步, cell) => Math.max(1 / (GRID_STEP * 4), Math.round(步 / cell * GRID_STEP * 4) / (GRID_STEP * 4));
 const snapDelta = (px, cell, 步) => snapQ(步, cell) * Math.round(px / cell / snapQ(步, cell));
 /* 卡片面积到页面这个比例就算「展开」，组件在卡内直接给全部功能。
-   说明书里点了 noExpanded 的那一家不吃这一档（日程：任意大小都照卡面那一格画，全览只走 ⛶）。 */
+   插件清单里点了 noExpanded 的那一家不吃这一档（日程：任意大小都照卡面那一格画，全览只走 ⛶）。 */
 const EXPAND_AREA = .25;
 const isExpanded = (def, it) => !def.noExpanded && it.w * it.h >= GRID_COLS * GRID_ROWS * EXPAND_AREA;
 /* 字号基准：格子短边 58px 时字号 1.0 */
@@ -1571,10 +1571,10 @@ const Shell = {
     this.tickClock(); setInterval(() => this.tickClock(), 30000);
     addEventListener('resize', () => { this.fitGrid(); });
   },
-  /* 全新桌面摆哪几张卡：外壳不认识任何一个插件的名字，只问说明书 ——
+  /* 全新桌面摆哪几张卡：外壳不认识任何一个插件的名字，只问插件清单 ——
      包在 manifest 里写了 first（一个序号）就说明它要求出厂摆一张，按序号排下来。
-     说明书是空的（没走构建、直接翻源码看的那一回）退回注册表顺序，别把桌面开成一片白。
-     卸载掉的包不在说明书里，自然也就不会自己长回来。 */
+     插件清单是空的（没走构建、直接翻源码看的那一回）退回注册表顺序，别把桌面开成一片白。
+     卸载掉的包不在插件清单里，自然也就不会自己长回来。 */
   firstRunCards(){
     const want = Packs.list().filter(m => typeof m.first === 'number')
       .sort((a, b) => a.first - b.first);
@@ -1831,7 +1831,7 @@ const Shell = {
     ];
     if(def.expand && !expanded) tools.push(h('button', { class:'fd-tool', title:'放大', html:icoMarkup('expand'), onclick:() => def.expand(this.ctxFor(it)) }));
     /* 每张卡顶上这几个编辑钮：改代码（铅笔图标，配方开「组件定制」，内置直接改这一家自己的 main.js）、
-       设置（齿轮图标，只有说明书点了 settings 的那几家才有 —— 插件的设置回归插件自己，不再垫在「设置 · 组件」那一页）、
+       设置（齿轮图标，只有插件清单点了 settings 的那几家才有 —— 插件的设置回归插件自己，不再垫在「设置 · 组件」那一页）、
        词库（牌堆图标，改这个功能用的词库）。WNW 停靠标题条上同名几个，两端对等。 */
     const cid = String(def.id).startsWith('tool-') ? def.id.slice(5) : def.id;
     const setter = def.settings || (typeof TOOL_DEFS !== 'undefined' && TOOL_DEFS.get(cid) && TOOL_DEFS.get(cid).settings);
@@ -2488,7 +2488,7 @@ const Jump = {
     const n = w.nextNode();
     return n ? (n.nodeType === 3 ? n.parentElement : n) : null;
   },
-  /* 卡片名 → 注册表里的那一家：清单上的名字来自源码和说明书，界面上叫 def.name，先原样比一遍，再比包含 */
+  /* 卡片名 → 注册表里的那一家：清单上的名字来自源码和插件清单，界面上叫 def.name，先原样比一遍，再比包含 */
   widgetByName(n){
     const s = String(n || '').trim();
     if(!s) return null;

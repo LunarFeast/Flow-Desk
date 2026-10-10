@@ -232,7 +232,7 @@ if(!ONLY || ONLY === '3'){
     for(const nm of list) if(!new RegExp('[\\s{(=.]' + nm + '\\s*[:(=]').test(preText))
       bad('APP_DENY 里点了「' + nm + '」，preload 压根没这个名字 —— 白名单里写个不存在的名字，等于那道地板没写');
     for(const nm of names) if(!list.includes(nm) && /(PageFile|PageBytes|dirTree|dataWrite|dataRead|compWrite|compDelete)/.test(nm))
-      bad('页面用的「' + nm + '」没进 APP_DENY —— 组件说明书点名就能拿它往页面树追加字节');
+      bad('页面用的「' + nm + '」没进 APP_DENY —— 插件清单点名就能拿它往页面树追加字节');
     ok('APP_DENY 列了 ' + list.length + ' 个名字，页面一共点到 ' + names.size + ' 个');
   }
   /* manifest 的 minShell：打包那一头算最低外壳，运行时那一头有没有人挡一道？ */

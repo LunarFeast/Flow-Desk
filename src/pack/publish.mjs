@@ -9,7 +9,7 @@
      node src/pack/publish.mjs --out=<目录>   产物落到别处（默认 Flow-Desk\dist）
 
    三份产物：
-     dist\plugins\<id>.zip                     一个包一包，货架上摆的零卖货（解开文件夹 → 压平，说明书重新序列化一遍）
+     dist\plugins\<id>.zip                     一个包一包，货架上摆的零卖货（解开文件夹 → 压平，插件清单重新序列化一遍）
      dist\index.json                              货架清单：每个包的名字/版本/大小/最低外壳版本/图标/作者来源，页面里挂货架就读它
      dist\Flow_Desk_setup_<fd>.exe                首装那一个：Windows 自带的 csc 编出来的小壳 + 粘在屁股后面这一整棵树的出厂内容
 
@@ -72,8 +72,8 @@ const 当前页 = 页名(VER.fd);
 if(!fs.existsSync(path.join(PAGES, 当前页)))
   throw new Error('pages\\ 里没有当前这一支号的页（' + 当前页 + '）—— 先跑 node src\\_fd\\build.mjs 生成，再来打包');
 /* 每一家插件的版本由发布脚本传进来（各仓自己那一笔的短哈希那一串，见 src\_build\release.mjs）。
-   说明书里那一格 version 是老版本 —— 打包这一趟不写它也不取它（他 2026-10-10 定）。
-   没传这一格（本地自己跑 publish 看清单）就照说明书那一格摆。 */
+   插件清单里那一格 version 是老版本 —— 打包这一趟不写它也不取它（他 2026-10-10 定）。
+   没传这一格（本地自己跑 publish 看清单）就照插件清单那一格摆。 */
 const 递来的家 = (() => {
   const raw = String(process.env.FD_PLUGINS || '').trim();
   if(!raw) return null;
@@ -144,7 +144,7 @@ function packZip(p, 用了号){
   if(!names.includes('manifest.json')) throw new Error('包 ' + p.id + ' 里没有 manifest.json');
   const entries = names.map(name => ({
     name,
-    /* 说明书按发布这一趟重序列化一遍：字段顺序、缩进都定下来，压出来的包字节可复现；
+    /* 插件清单按发布这一趟重序列化一遍：字段顺序、缩进都定下来，压出来的包字节可复现；
        版本号这一格换成发布脚本传进来的那一个 —— 源码里那一格是人手写的，不动它就永远老在原地，
        用户导入之后在「关于」里看到的就是上一个号。 */
     data: name === 'manifest.json'
@@ -157,7 +157,7 @@ const shelf = [];
 for(const p of packs){
   if(p.error) continue;
   const m = p.manifest;
-  /* 发布脚本传进来的那一家自己的那一串优先；没传（单独跑 publish）才退回说明书那一格 */
+  /* 发布脚本传进来的那一家自己的那一串优先；没传（单独跑 publish）才退回插件清单那一格 */
   const 出 = (递来的家 && 递来的家[m.id] && 递来的家[m.id].version) || m.version;
   const buf = packZip(p, 出);
   shelf.push({
@@ -190,7 +190,7 @@ const label = 'Flow-Desk 便携版 ' + VER.fd;
 made.set('flow-desk-install.json', Buffer.from(JSON.stringify({
   kind: 'flow-desk-tree', label: label, made: new Date().toISOString(),
   versions: VER, packs: shelf.map(p => p.id),
-  /* 每一家插件这一趟带的是哪一串号、它要的外壳最低是哪一号（发布脚本传进来的，不取说明书那一格） */
+  /* 每一家插件这一趟带的是哪一串号、它要的外壳最低是哪一号（发布脚本传进来的，不取插件清单那一格） */
   plugins: shelf.map(p => ({ id:p.id, name:p.name, version:p.version, 兼容外壳:p.minShell })),
   note: '这一棵树是首装摊出来的：整文件夹删掉就算卸载，不写注册表。一个插件都不带（插件分开各自发布），换新版本再双击一颗新的 setup 指到同一棵就是覆盖升级。'
 }, null, 2) + '\n', 'utf8'));
@@ -211,7 +211,7 @@ made.set('安装说明.txt', Buffer.from([
   '',
   '这一份发布物里一个插件都没有 —— 插件跟主程序分开各自开发、各自发布，要哪家自己去那一家的仓库拿。',
   '装一个插件（拿到的是 <id>.zip 或解开的文件夹）：',
-  '  顶栏的 ＋（添加插件）→「导入插件」，挑那个压缩包或那个带说明书的文件夹；',
+  '  顶栏的 ＋（添加插件）→「导入插件」，挑那个压缩包或那个带插件清单的文件夹；',
   '  或者直接把那一格丢进 data\\plugins\\，重启一次软件就认（压缩包会当场摊开）。',
   '  导入的同一趟会往 data\\plugins-factory\\ 留一份原版，所以「改代码」改坏了有点「恢复出厂」拷回来。',
   '装卸都在这同一屏：每一家有「装上 / 卸掉 / info」。',

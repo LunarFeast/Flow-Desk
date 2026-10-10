@@ -66,7 +66,7 @@ function copyBtn(text, label){
    这两个值不只是网址：写盘那几条（FD_APP.writePageFile / writePageBytes）拿的也是这一串，
    主进程按「页面文件所在的位置」去解它，所以两种开法各要各的跳法，合不成一条。
    把 html 双击直接打开那一种已经废止 —— 组件由 Flow-Desk 程序加载，那种开法里根本没有组件。
-   哪份词库归哪个包、明文落在哪儿，写在包的说明书里（bank.user），这儿不再硬点名。 */
+   哪份词库归哪个包、明文落在哪儿，写在包的插件清单里（bank.user），这儿不再硬点名。 */
 const DATA_PRE = (window.FD_APP && location.protocol === 'fdapp:') ? '../data/' : '';
 window.TOOL_HOST = {
   id:'fd',

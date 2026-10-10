@@ -7,10 +7,10 @@
        off 记的是「被卸掉的那几家」，这份名单不在 = 一家都没卸，扫到的全生效。按宿主管家的挑出来，按 order 排。
      2 import('<id>/main.js?v=开机时间') —— ES module，export default 一份定义；
        每次开机都是新 URL，改了代码存盘、刷新这一页就生效，没有「重新生成页面」这一趟。
-     3 先给这一家做一份插件上下文（PackCtx），调 def.init(ctx)，再按说明书的 type 登记：
+     3 先给这一家做一份插件上下文（PackCtx），调 def.init(ctx)，再按插件清单的 type 登记：
        widget → 桌面卡片（只有 Flow-Desk 有桌面）· tool → 功能（两端）· recipe → 生成器配方。
    ----------
-   一个崩只倒自己的坑：说明书照收，登记一张错误卡（或控制台一句），
+   一个崩只倒自己的坑：插件清单照收，登记一张错误卡（或控制台一句），
    外壳和别家插件照常跑。
    名单读不到就这一轮不加载插件，外壳照常跑 —— 把 html 双击直接打开那一种已经废止，
    加载和使用插件的途径只有 Flow-Desk 程序（本地开发那台 http 服务器算开发通道）。
@@ -28,7 +28,7 @@ const PackLoader = {
   use(o){ Object.assign(this, o); return this; },
   which(){ return this.host; },
 
-  /* ---------- 名单和说明书 ----------
+  /* ---------- 名单和插件清单 ----------
      两条开法拿回来的是同一份形状 { packs:[{id,kind,manifest}], off:[…] }：
        · Flow-Desk 程序 → 主进程那条 packList；
        · 本地开发那台 http 服务器 → /_comp 的 op:'dirs'（它自己扫 数据\plugins\ 那一格）。
@@ -62,7 +62,7 @@ const PackLoader = {
     }
     return out;
   },
-  /* 说明书缺的那几样按默认补齐 —— 和构建那把尺（_build/packs.mjs）同一个口径 */
+  /* 插件清单缺的那几样按默认补齐 —— 和构建那把尺（_build/packs.mjs）同一个口径 */
   metaOf(id, m){
     return {
       id, name:m.name || id, version:m.version || '0', author:m.author || '', source:m.source || '',
@@ -85,7 +85,7 @@ const PackLoader = {
       list.push(it.id);
     }
     list.sort((a, b) => (PACK_META[a].order - PACK_META[b].order) || (a < b ? -1 : a > b ? 1 : 0));
-    /* 说明书表一家家填进 PACK_META 之后、真 import 之前刷新词库名：
+    /* 插件清单表一家家填进 PACK_META 之后、真 import 之前刷新词库名：
        第一家的 init 就可能要读自己那份库，BANK_NAME 得先认得出这一家。 */
     if(typeof bankSync === 'function') bankSync();
     for(const id of list){
@@ -96,9 +96,9 @@ const PackLoader = {
     try{ Bus.emit('packs:loaded'); }catch(e){}
     return this;
   },
-  /* ---------- 新建 / 刚导入的那一家：先从盘上把说明书读进表里 ----------
+  /* ---------- 新建 / 刚导入的那一家：先从盘上把插件清单读进表里 ----------
      名单和 PACK_META 都按开机那一趟算，刚写进 data\\plugins\\ 的一格表里没有它。
-     读得到说明书、且 host 认本宿主，才往表里补一格（补完这一家就等于「装上并加载」）。 */
+     读得到插件清单、且 host 认本宿主，才往表里补一格（补完这一家就等于「装上并加载」）。 */
   async metaFromDisk(id){
     id = String(id);
     let text = '';
@@ -107,7 +107,7 @@ const PackLoader = {
       const r = await A.compRead(id, 'manifest.json');
       if(r && r.ok) text = String(r.text || '');
     }else{
-      /* 本地开发那台 http 服务器：说明书直接从 plugins/ 那一层 fetch */
+      /* 本地开发那台 http 服务器：插件清单直接从 plugins/ 那一层 fetch */
       try{
         const r = await fetch(this.base + id + '/manifest.json', { cache:'no-store' });
         if(r.ok) text = await r.text();
@@ -127,14 +127,14 @@ const PackLoader = {
      注册那一格被新的定义顶掉（出厂基线 TOOL_DEFS / WIDGET_BASE 不吃第二次，还是第一份）。
      重 import 之后广播一句 pack:reload，宿主在那儿重画自己那部分（卡片、停靠面板都重新挂一遍），
      所以「改代码 · 保存」之后不用刷新整页，也不用重新构建 Flow-Desk 页面。
-     opt.new = 这一家刚新建 / 刚导入、表里还没有说明书：先补说明书再 import。
+     opt.new = 这一家刚新建 / 刚导入、表里还没有插件清单：先补插件清单再 import。
      没在名单里加载的（opt.new 没给）不动它 —— 免得把用户刚卸掉的包偷偷请回来。 */
   async reload(id, opt){
     id = String(id);
     const o = opt || {};
     if(!PACK_META[id]){
       if(!o.new) return { ok:false, msg:'这一家这一轮没在名单里加载，改完刷新这一页才认它' };
-      if(!await this.metaFromDisk(id)) return { ok:false, msg:'刚写的说明书读不到，或者它不写给本宿主用' };
+      if(!await this.metaFromDisk(id)) return { ok:false, msg:'刚写的插件清单读不到，或者它不写给本宿主用' };
     }
     this.errs.delete(id);
     delete PACK_META[id].error;
@@ -154,8 +154,8 @@ const PackLoader = {
     const mod = await import(url);
     const def = mod && mod.default;
     if(!def || typeof def !== 'object') throw new Error('这一家的代码没有交出一份定义');
-    /* id 和中文名都从说明书取，一家只写一处：包里那份定义不用自己声明，
-       声明了就是抄第二份名字 —— 改了说明书、漏了源码，界面上就露出旧名。 */
+    /* id 和中文名都从插件清单取，一家只写一处：包里那份定义不用自己声明，
+       声明了就是抄第二份名字 —— 改了插件清单、漏了源码，界面上就露出旧名。 */
     def.id = id;
     def.name = m.name;
     const ctx = PackCtx.make(id);
@@ -164,7 +164,7 @@ const PackLoader = {
     this.register(id, def, ctx);
   },
   register(id, def, ctx){
-    /* 名字的真身只有一份：说明书（manifest.json）里那一行 name。
+    /* 名字的真身只有一份：插件清单（manifest.json）里那一行 name。
        包里那份定义不再自己声明 id / name —— 声明了就是抄第二份，改一处漏一处。
        mount 包一层：宿主现给的挂载上下文和 init 那份插件上下文并成一份传进去，
        组件里只管用同一份 ctx，不用两头记。
@@ -186,7 +186,7 @@ const PackLoader = {
     else if(type === 'recipe'){ if(typeof Gen !== 'undefined') Gen.def(def); }
     else if(typeof registerWidget === 'function') registerWidget(def);
   },
-  /* 崩了的一家：说明书留着（名单里看得见它、信息页说得出为什么），位子上立一张错误卡 */
+  /* 崩了的一家：插件清单留着（名单里看得见它、信息页说得出为什么），位子上立一张错误卡 */
   fail(id, e){
     const m = PACK_META[id];
     const msg = (e && e.message) || String(e);
@@ -214,9 +214,9 @@ const PackLoader = {
 /* ============================================================
    Electron 桥的白名单发放（两个宿主共用这一把尺）
    ----------
-   说明书 appChannels 点名哪个方法，组件才拿得到哪一个；没点名的在它的上下文里根本不存在。
+   插件清单 appChannels 点名哪个方法，组件才拿得到哪一个；没点名的在它的上下文里根本不存在。
    还有一道硬地板：装卸、关于、树内文件、用户数据底层、窗口控制这些通道，
-   就算哪份说明书厚着脸皮点名也不给 —— 插件禁止清单第一节那一条从这里开始是机制，不是约定。
+   就算哪份插件清单厚着脸皮点名也不给 —— 插件禁止清单第一节那一条从这里开始是机制，不是约定。
    找桥按「自己这一框 → 父框 → 顶框」往上问一圈：桥只注在 Flow-Desk 那一框，组件不管挂在桌面上
    还是停靠里，都在同一张页的同一框，问一次就中；音乐卡在桌面和停靠里连的是同一个桥。
    函数一律包一层再递（组件拿不到桥对象本身），非函数的属性（label：这一框是哪个程序）照原值带上。
@@ -234,7 +234,7 @@ function packApp(ch){
   if(!A) return null;                      /* 这一棵里没有主进程那层桥（本地开发那台服务器） */
   const out = {};
   for(const k of (ch || [])){
-    if(APP_DENY.includes(k)){ console.warn('组件说明书点名要「' + k + '」：这条通道不给组件，硬地板挡下'); continue; }
+    if(APP_DENY.includes(k)){ console.warn('插件清单点名要「' + k + '」：这条通道不给组件，硬地板挡下'); continue; }
     if(typeof A[k] === 'function') out[k] = (...a) => A[k](...a);
     else if(k in A) out[k] = A[k];
   }
@@ -249,10 +249,10 @@ function packApp(ch){
        组装进每一家的 ctx；
      · 各宿主不一样的那几样（设置、明文存储、封面、对话框、FD_APP 通道、剩下的小工具）
        由宿主开机时 PackCtx.parts({...}) 交上来，缺的项就不摆。
-   数据门按说明书来：
+   数据门按插件清单来：
      kv / settings 只认 manifest.kvKeys 点名的键（外加 pack.<id>. 打头的新键）；
      state 只认自己名字打头的键，外加 manifest.stateKeys 点名的那些前缀
-       （音乐遥控器存的是 music-dir / music-ly 这一串，包 id 叫 music-remote，挡不住 —— 就写进说明书）；
+       （音乐遥控器存的是 music-dir / music-ly 这一串，包 id 叫 music-remote，挡不住 —— 就写进插件清单）；
      store 只读写 manifest.dataKeys 点名的文件；
      app 只开 manifest.appChannels 点名的方法。
    ============================================================ */
@@ -266,7 +266,7 @@ const PackCtx = {
     const kvOk = k => (m.kvKeys || []).includes(k) || String(k).startsWith('pack.' + id + '.');
     const stOk = k => { const s = String(k); return s === id || s.startsWith(id + '-') || s.startsWith(id + '.') || s.startsWith('pack.' + id + '.')
       || (m.stateKeys || []).some(p => s.startsWith(String(p))); };
-    const deny = what => { throw new Error('组件「' + nm + '」' + what + '，说明书没带它'); };
+    const deny = what => { throw new Error('组件「' + nm + '」' + what + '，插件清单没带它'); };
     const ctx = {
       pack:{ id, name:nm, version:m.version, author:m.author, source:m.source, where:m.where, desc:m.desc, type:m.type || 'widget' },
       el:h,
@@ -294,7 +294,7 @@ const PackCtx = {
         get:async (k, fb) => { if(!stOk(k)) deny('要读的表单键「' + k + '」'); return State.get(k, fb); },
         set:(k, v) => { if(!stOk(k)) deny('要写的表单键「' + k + '」'); return State.set(k, v); }
       },
-      /* 词库跟着包走：说明书点了哪份，就只能拿哪份 */
+      /* 词库跟着包走：插件清单点了哪份，就只能拿哪份 */
       bank:which => {
         const b = m.bank;
         if(!(b && b.which === which)) deny('词库「' + which + '」');
@@ -307,7 +307,7 @@ const PackCtx = {
         if(!s){ s = document.createElement('style'); s.setAttribute('data-pack', id); document.head.appendChild(s); }
         s.textContent += (s.textContent ? '\n' : '') + css;
       },
-      /* 后台通道：说明书 appChannels 点了哪几个才发哪几个（发放那把尺在上面，两个宿主共用）；
+      /* 后台通道：插件清单 appChannels 点了哪几个才发哪几个（发放那把尺在上面，两个宿主共用）；
          这一棵里没有桥（本地开发那台服务器没有主进程）就是 null，组件里那句「这条通道没有」的分支照常走 */
       app:(F.app || packApp)(m.appChannels || [])
     };

@@ -4,7 +4,7 @@
    盘上这一趟走这里 import 的同一份 —— 两边认的不是同一个名字就搬歪，所以只许有一张嘴。
    干三件事，都在 data\plugins 那一格里：
      · 包文件夹本身改名
-     · 说明书 manifest.json 里的 id 改名
+     · 插件清单 manifest.json 里的 id 改名
      · 名单 off.json 里那一项改名
    包外散件（<id>.code.js 改代码副本、<id>.zip 压好的成品、<id>.js / <id>.recipe.json 定制散配方）
    跟着一起改名；这一台机器上现在一样都没有，脚本照样认，因为探针沙盒和别的机器可能有。
@@ -44,14 +44,14 @@ for(const [旧, 新] of Object.entries(PACK_RENAME)){
   if(fs.existsSync(b)){ console.error('  ! 新旧两格同时在：' + 旧 + ' 和 ' + 新 + ' —— 先看清哪一份是要留的，脚本不停在这一处'); continue; }
   做(旧 + '\\ → ' + 新 + '\\', () => fs.renameSync(a, b));
 }
-/* 二、说明书里那一行 id（只改 id，中文名 name 不动 —— 界面上叫的还是「你的便签」） */
+/* 二、插件清单里那一行 id（只改 id，中文名 name 不动 —— 界面上叫的还是「你的便签」） */
 for(const [旧, 新] of Object.entries(PACK_RENAME)){
   const f = path.join(格, 新, 'manifest.json');
   if(!fs.existsSync(f)) continue;
   let m; try{ m = JSON.parse(fs.readFileSync(f, 'utf8')); }
-  catch(e){ console.error('  ! 说明书读不进来：' + f + '（' + e.message + '）'); continue; }
+  catch(e){ console.error('  ! 插件清单读不进来：' + f + '（' + e.message + '）'); continue; }
   if(m.id !== 旧) continue;
-  做(新 + ' 的说明书 id：' + 旧 + ' → ' + 新, () => {
+  做(新 + ' 的插件清单 id：' + 旧 + ' → ' + 新, () => {
     m.id = 新;
     fs.writeFileSync(f, JSON.stringify(m, null, 2) + '\n');
   });

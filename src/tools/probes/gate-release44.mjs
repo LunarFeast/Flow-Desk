@@ -58,7 +58,7 @@ const 那颗URL = pathToFileURL(path.resolve('D:/Programs/Flow-Desk/src/_build/p
   return out.trim() === '只出零件 7' && !/Flow-Desk-plugin-/.test(out);
 })());
 
-台.题('四、说明书里那一格老版本不再当成打包取的号');
+台.题('四、插件清单里那一格老版本不再当成打包取的号');
 台.判('publish 认 FD_PLUGINS 传进来的那一家自己的号', /const 递来的家 = \(\(\) =>/.test(pub) && /递来的家 && 递来的家\[m\.id\] && 递来的家\[m\.id\]\.version/.test(pub));
 台.判('传进来的不是合法 JSON 就当场报错，不静悄悄退回老号', /FD_PLUGINS 传进来的不是合法 JSON/.test(pub));
 台.判('安装标记里带上每一家的号和它要的外壳那一档（他第九条要的那三样）', /plugins: shelf\.map\(p => \(\{ id:p\.id, name:p\.name, version:p\.version, 兼容外壳:p\.minShell/.test(pub));

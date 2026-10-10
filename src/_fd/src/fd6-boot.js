@@ -29,7 +29,7 @@
   /* 卡片大小清单（#251）：读磁盘那一份盖大小，排在组件加载之前 —— 新摆的卡片注册那一刻就吃到清单里的新默认。
      之后外部编辑器存盘、别的窗口保存，都靠下面接的广播当场跟上。 */
   try{ await SizeList.boot(); }catch(e){}
-  /* 插件在这一刻从 data\plugins\ 加载进来（名单 → 说明书 → import main.js → 登记）。
+  /* 插件在这一刻从 data\plugins\ 加载进来（名单 → 插件清单 → import main.js → 登记）。
      排在卡片大小清单之后：新摆的卡片吃清单盖过的大小，注册那一刻就得盖上；
      排在 Shell.init 之前：首页那几张卡要摆得出。一家崩了只立它自己那张错误卡。 */
   try{ await PackLoader.load(); }catch(e){ console.warn('插件加载这一趟没走通：' + ((e && e.message) || e)); }

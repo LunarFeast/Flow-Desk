@@ -6,7 +6,7 @@
 
 /* ---------- 启动卡：整张卡就是一块卡面，中间一行字，点卡打开 ----------
    启动卡是两个可卸的包（plugins\why-not-write\、plugins\singbit-input-practice\）。
-   卡上那行字和封面顶上的标题都用说明书里那个中文名，包里不再抄一份。
+   卡上那行字和封面顶上的标题都用插件清单里那个中文名，包里不再抄一份。
    怎么把一张卡画出来是公共件，留在外壳这里，两个包共用，不各写一份。
    以前是一个铺满卡面的按钮，把卡片本身那块面盖住了；不用按钮也就不需要
    data-nodrag，长按 180ms 照样能起拖，短按就是打开。
@@ -53,7 +53,7 @@ function mountLauncher(body, opts, ctx){
 const SetCache = { close:null, data:'', about:'' };
 /* 左边那一列有哪几档：全是外壳自己的档。
    插件的设置不在这里 —— 每一家自己的设置摆在自己卡片标题条那一个齿轮上
-   （说明书点了 settings 才渲染这个按钮，Why Not Write 的停靠面板头上同名一个，两边入口对等）。
+   （插件清单点了 settings 才渲染这个按钮，Why Not Write 的停靠面板头上同名一个，两边入口对等）。
    配色不再单开一档 —— 一套颜色本来就是「外观」的第一件事（paletteRows）。 */
 SetupTabs.add('外观', tabLook, { order:20 });
 /* 「程序」这一档管的是窗口怎么关，只有 Flow-Desk.exe 里说了算的那一层在的时候才摆 */
@@ -2210,7 +2210,7 @@ function tabData(){
     h('button', { class:'fd-btn', onclick:async () => {
       await Store.flush();
       const bundle = {};
-      /* 带哪些明文：外壳这四个 + 每个装着的包在说明书里自己点名的（卸载掉的不掺和） */
+      /* 带哪些明文：外壳这四个 + 每个装着的包在插件清单里自己点名的（卸载掉的不掺和） */
       for(const rel of Packs.dataFiles(['appearance.json','layout.json','phrases.json'])) bundle[rel] = Store.cache.get(rel) || await Store.rawRead(rel);
       const a = h('a', { href:URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type:'application/json' })), download:'flow-desk-backup-' + fmtDate(new Date()) + '.json' });
       a.click(); toast('已导出备份 JSON');

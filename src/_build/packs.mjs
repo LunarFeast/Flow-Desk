@@ -112,7 +112,7 @@ function packFiles(dir, id){
   return null;
 }
 
-/* 说明书：manifest.json 必须是对象，id 以目录名为准（写歪了按目录名纠正） */
+/* 插件清单：manifest.json 必须是对象，id 以目录名为准（写歪了按目录名纠正） */
 function manifestOf(pk, id){
   const raw = pk.files.get('manifest.json');
   if(!raw) throw new Error('包 ' + id + ' 里没有 manifest.json');
@@ -164,7 +164,7 @@ export function setOff(dir, ids){
 /* ---------- 生成页面要的那一句 ----------
    host 是 'fd' 或 'wnw'：这一侧的外壳拼哪些包、按什么顺序拼。
    顺序 = manifest.order，同序按 id，两边扫同一批目录得出的是同一个次序。
-   返回 { segments:[{name, src}], meta:{id:{…说明书里给运行时看的那几项}}, skipped:[{id, why}] } */
+   返回 { segments:[{name, src}], meta:{id:{…插件清单里给运行时看的那几项}}, skipped:[{id, why}] } */
 export function resolve(dir, host, opt){
   const o = opt || {};
   const all = scan(dir);
@@ -187,7 +187,7 @@ export function resolve(dir, host, opt){
       if(f === undefined){ skipped.push({ id:p.id, why:'包里少了 ' + e }); continue; }
       segments.push({ name:'组件/' + p.id + '/' + e, src:f.toString('utf8'), pack:p.id });
     }
-    /* 包里除说明书和代码之外的那些文件，就是这一家的出厂数据（词库、监听脚本、桥插件都算）。
+    /* 包里除插件清单和代码之外的那些文件，就是这一家的出厂数据（词库、监听脚本、桥插件都算）。
        发布这一趟直接读内存，不落临时文件；哪家要压进 zip、哪家要解到 data\plugins\ 上，各挑各的。
        文本的顺手带一份 text，二进制的（桥插件那种 dll）只带 buf，别按 utf8 拆坏了。 */
     for(const [name, buf] of p.files){
@@ -198,7 +198,7 @@ export function resolve(dir, host, opt){
     meta[p.id] = { name:m.name, author:m.author, source:m.source, version:m.version, minShell:m.minShell,
       desc:m.desc || '', host:m.host, order:m.order, icon:m.icon || '',
       first:(typeof m.first === 'number' ? m.first : null), dataKeys:m.dataKeys || [], kvKeys:m.kvKeys || [],
-      /* 词库跟着功能走：说明书点了 bank，这一家就自带那份底本（bank.txt），
+      /* 词库跟着功能走：插件清单点了 bank，这一家就自带那份底本（bank.txt），
          用户改出来的那一份写在包里点名的 user 位置上（数据层，不在包里），卸掉勾了「同步清除数据」才没。
          sharedKeys 是同一个意思的通用形状：数据层根（data\）那一侧、由各功能包自带的路径。 */
       sharedKeys:m.sharedKeys || [], bank:m.bank || null, assets:m.assets || {},
@@ -207,6 +207,6 @@ export function resolve(dir, host, opt){
   return { segments, meta, data, skipped, all };
 }
 
-/* 产物里不再拼组件段，也不再打说明书表（FD_PACKS 那一份已废）：
-   开机由加载器 _shared/sh-load.js 现名单、现 import，说明书一家家填进 PACK_META。
+/* 产物里不再拼组件段，也不再打插件清单表（FD_PACKS 那一份已废）：
+   开机由加载器 _shared/sh-load.js 现名单、现 import，插件清单一家家填进 PACK_META。
    这一把尺只留给发布侧用 —— scan 读包、writeZip 压成品包，都是运输形状。 */

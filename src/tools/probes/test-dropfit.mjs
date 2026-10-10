@@ -184,7 +184,7 @@ R.题('四 · 日程不再按面积算展开（外33 第 3 条，他的原话：
     问({ id:'tool-music-remote' }, 17.5, 35) === true, 问({ id:'tool-music-remote' }, 17.5, 35));
   R.判('小卡照旧不算（日程出厂 7 × 8 = 56 格、别家 30 × 18 = 540 格都差那一档没到）',
     问({ id:'schedule', noExpanded:true }, 7, 8) === false && 问({ id:'x' }, 30, 18) === false);
-  R.判('说明书里真的点了这一位（少了这一行，上面那些判法全是空的）',
+  R.判('插件清单里真的点了这一位（少了这一行，上面那些判法全是空的）',
     /^  noExpanded:true,/m.test(SCH), (SCH.match(/^\s*noExpanded:[^\n]*/m) || [''])[0].trim());
   R.判('外壳只有一处在比面积，就是 isExpanded 那颗：cardFor 与拖完那一步都改吃它，没留第二处裸算',
     (S.match(/GRID_COLS \* GRID_ROWS \* EXPAND_AREA/g) || []).length === 1 &&

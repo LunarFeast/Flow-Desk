@@ -161,7 +161,7 @@ function icoFix(el){
 }
 /* 一个功能 / 一个包露脸的那一张：包自己 images\ 里那张（pack-<包名>）优先，
    其次注册表里给的名字或老字符，两个都没有才用那张通用的牌。
-   注册名有时带 tool- 前缀（外壳那一层加的），说明书里是光板 id，两边都试一遍。 */
+   注册名有时带 tool- 前缀（外壳那一层加的），插件清单里是光板 id，两边都试一遍。 */
 function icoFor(id, name){
   const tryId = x => { const p = 'pack-' + cssName(x || ''); return Ico.has(p) ? p : ''; };
   let hit = tryId(id);

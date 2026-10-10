@@ -58,7 +58,7 @@ function parseSize(s){
    ----------
    组件是乙案之后那种 ES module：main.js 只 export default 一份定义，登记成卡片还是功能，
    由同目录 manifest.json 里那句 "type" 说了算（widget / tool / recipe），加载器 import 完才去注册。
-   所以这里先读说明书认类型，再回 main.js 认那一段大小住在哪一行；字符串和注释里的花括号不数。 */
+   所以这里先读插件清单认类型，再回 main.js 认那一段大小住在哪一行；字符串和注释里的花括号不数。 */
 const RE_DEF = /(?<![\w$.])["']?def["']?\s*:\s*\{\s*["']?w["']?\s*:\s*(\d+)\s*,\s*["']?h["']?\s*:\s*(\d+)\s*\}/g;
 const RE_CARD = /(?<![\w$.])["']?card["']?\s*:\s*\{/g;
 const RE_NAME = /(?<![\w$.])["']?name["']?\s*:\s*(["'])((?:\\.|(?!\1)[^\\])*)\1/g;
@@ -148,7 +148,7 @@ function cardDef(text, o){
 function defSite(name, dm, rel){
   return { name, w:+dm[1], h:+dm[2], kind:'def', rel, start:dm.index, len:dm[0].length };
 }
-/* 一家包：说明书认类型，main.js 认那一段大小 */
+/* 一家包：插件清单认类型，main.js 认那一段大小 */
 function packSites(TREE, dir, fb){
   const base = path.join(TREE, 'data', 'plugins', dir);
   let m = null;

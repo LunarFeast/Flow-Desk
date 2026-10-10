@@ -1,6 +1,6 @@
 /* FD 组装：只拼外壳骨架 —— 插件代码不进产物。
    功能住在 data\plugins\<id>\，页面开机由加载器（_shared/sh-load.js）现名单、现 import；
-   哪几家不加载归 off.json 说了算，构建这边不再认名单、不再拼段、不再打说明书表。
+   哪几家不加载归 off.json 说了算，构建这边不再认名单、不再拼段、不再打插件清单表。
    （发布侧的 zip / 货架仍然由 _build/packs.mjs 那把尺打包 —— 那是运输形状，不是产物内容。） */
 import fs from 'node:fs';
 import vm from 'node:vm';

@@ -39,18 +39,18 @@ const 剩 = 全.split(/\r?\n/).filter(x => x && !该留.includes(x));
 台.数('除那张表和这台探针之外还带旧名的文件', 剩.length);
 台.判('源码 / 图标 / 插件树里一处旧名不剩，旧名字只活在改名那张表和这台探针上',
   剩.length === 0 && 该留.every(n => 全.includes(n)), 剩.join(' | ') || 全 || '（连表里都找不到旧名了，那这张表改了形状）');
-/* 盘上那一格：目录名、说明书 id、名单三样都得跟着换，缺一样就是「一半新一半旧」 */
+/* 盘上那一格：目录名、插件清单 id、名单三样都得跟着换，缺一样就是「一半新一半旧」 */
 const 格 = ROOT + 'data/plugins';
 const 目录 = fs.readdirSync(格).filter(n => fs.statSync(格 + '/' + n).isDirectory());
-const 说明书 = {};
+const 插件清单 = {};
 for(const d of 目录) if(fs.existsSync(格 + '/' + d + '/manifest.json'))
-  说明书[d] = JSON.parse(fs.readFileSync(格 + '/' + d + '/manifest.json', 'utf8')).id;
+  插件清单[d] = JSON.parse(fs.readFileSync(格 + '/' + d + '/manifest.json', 'utf8')).id;
 const 名单 = JSON.parse(fs.readFileSync(格 + '/off.json', 'utf8')).off;   /* 外41 六段起这份记的是「被卸掉的」 */
 台.数('插件格', 目录.join('、'));
 台.数('卸掉的', 名单.length ? 名单.join('、') : '（一家都没卸）');
-台.判('三家新名字在目录和说明书两处都对得上，旧名字一处没有；卸掉那份名单不认旧名',
+台.判('三家新名字在目录和插件清单两处都对得上，旧名字一处没有；卸掉那份名单不认旧名',
   ['notes','music-remote','singbit-input-practice']
-    .every(n => 目录.includes(n) && 说明书[n] === n)
+    .every(n => 目录.includes(n) && 插件清单[n] === n)
   && !目录.some(n => 旧名.includes(n)) && !名单.some(n => 旧名.includes(n))
   /* 家数不钉死：外39 起组件定制也成了一家（wnw-custom），钉死一个数就是每加一家要改一台探针。
      名单反着记之后要判的是「off 里不许有盘上不存在的家」（卸掉的家必须真在那一格里有名字），
@@ -58,8 +58,8 @@ const 名单 = JSON.parse(fs.readFileSync(格 + '/off.json', 'utf8')).off;   /* 
   && 名单.every(x => 目录.includes(String(x))) && 目录.length >= 7,
   目录.length + ' 格 / 卸掉 ' + 名单.length + ' 项 · 差在：'
   + (名单.filter(x => !目录.includes(String(x))).join('、') || '没有'));
-台.判('说明书里的中文名一个字没动（界面上叫的还是「你的便签」）',
-  说明书['notes'] === 'notes' && JSON.parse(fs.readFileSync(格 + '/notes/manifest.json', 'utf8')).name === '你的便签'
+台.判('插件清单里的中文名一个字没动（界面上叫的还是「你的便签」）',
+  插件清单['notes'] === 'notes' && JSON.parse(fs.readFileSync(格 + '/notes/manifest.json', 'utf8')).name === '你的便签'
   && JSON.parse(fs.readFileSync(格 + '/music-remote/manifest.json', 'utf8')).name === '音乐遥控器',
   JSON.parse(fs.readFileSync(格 + '/notes/manifest.json', 'utf8')).name);
 

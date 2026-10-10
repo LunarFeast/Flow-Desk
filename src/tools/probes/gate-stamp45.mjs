@@ -34,7 +34,7 @@ const 写号 = 切(rel, '号写回清单');
 台.判('先写回清单，再拼 FD_PLUGINS（传进打包的就是清单里那一串）', rel.indexOf('号写回清单(r)') < rel.indexOf('FD_PLUGINS:'));
 台.判('publish 认传进来的那一家自己的号', pub.includes('递来的家[m.id].version'));
 台.判('界面上「关于」那句改口成「清单里没写号」', ui.includes('清单里没写号'));
-台.判('源码里不再留「说明书没写号」那句旧话', !ui.includes('说明书没写号') && !rel.includes('说明书没写号'));
+台.判('界面那份和发布脚本里都不再出现「说明书」这三个字', !ui.includes('说明书') && !rel.includes('说明书'));
 
 台.题('四、tag 钉在代码那一笔');
 台.判('打tag 多收一枚「钉在哪一笔」', rel.includes('function 打tag(dir, name, 谁, 钉在)'));
