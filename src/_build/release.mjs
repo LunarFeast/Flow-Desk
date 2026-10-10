@@ -24,6 +24,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { REPOS, TREE, git, filesOf } from './plugin-repos.mjs';
 import { 号, 底号, 页名 } from './version.mjs';
+import { 存档落点 } from '../tools/本地路径.mjs';
 
 const argv = process.argv.slice(2);
 const has = f => argv.some(a => a === f || a.startsWith(f + '='));
@@ -123,16 +124,35 @@ const 跑 = (cmd, args) => {
 跑(process.execPath, ['src/pack/build-app.mjs']);
 跑(process.execPath, ['src/pack/publish.mjs']);
 
-/* 老页面清掉：pages\ 里只留当前这一张。那一格同时是他的文稿目录，
-   所以只认 Flow_Desk_*.html 这一种名字，别的一个字不碰（从前攒下十七张老版本就是这么来的）。 */
-{
-  const 格 = path.join(TREE, 'pages'), 留 = 页名(主号), 删 = [];
-  for(const n of fs.readdirSync(格)){
-    if(!/^Flow_Desk_[\d][\w.+-]*\.html$/.test(n) || n === 留) continue;
-    try{ fs.rmSync(path.join(格, n)); 删.push(n); }catch(e){ 删.push('删不掉 ' + n); }
-  }
-  P('\n老页面清掉 ' + 删.length + ' 张（留的是 ' + 留 + '）' + (删.length ? '：\n  ' + 删.join('\n  ') : ''));
+/* ---------- 旧版本就地收走（他 2026-10-10 两句：「这种多版本的地方都需要定期清理旧版本」+「只留最新，旧版转移到存档那一格」）----------
+   三个地方会堆：pages\（每生成一张写一张）、dist\（每打一颗 exe 多一份）、update\packages\（每出一次更新包多一包）。
+   只认这三种产物自己的名字，别的一个字不碰：pages\ 同时是他的文稿目录，
+   update\backups\ 是每趟装之前的旧层（留着能退回去），根上那个 备份\ 更是一个文件夹都不许动。
+   落点住在 src\tools\本地路径.cjs 那颗「存档落点」里（这台机器自己的位置，不进仓）；没登记就只报不动。 */
+function 挪(from, to){
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  try{ fs.renameSync(from, to); return true; }
+  catch(e){ fs.copyFileSync(from, to); fs.rmSync(from, { force: true }); return true; }   /* 跨盘：改名不行就拷过去再删 */
 }
+function 收一处(格, 认, 说明){
+  const 全 = [];
+  try{
+    for(const n of fs.readdirSync(格)){
+      if(!认.test(n)) continue;
+      let mt = 0; try{ mt = fs.statSync(path.join(格, n)).mtimeMs; }catch(e){}
+      全.push({ n, mt });
+    }
+  }catch(e){ P('  ' + 说明 + '：这一格读不到，跳过'); return; }
+  全.sort((a, b) => b.mt - a.mt);
+  const 旧 = 全.slice(1);
+  if(!存档落点){ P('  ' + 说明 + '：留最新 1 份 · 另有 ' + 旧.length + ' 份旧版没收（这台没登记存档落点，只报不动）'); return; }
+  const 去 = 旧.map(x => { try{ 挪(path.join(格, x.n), path.join(存档落点, '旧版本', path.basename(格), x.n)); return x.n; }catch(e){ return '挪不动 ' + x.n; } });
+  P('  ' + 说明 + '：留最新 1 份 · 挪走 ' + 去.length + ' 份 → ' + 存档落点 + '\\旧版本\\' + path.basename(格) + (去.length ? '\n    ' + 去.join('\n    ') : ''));
+}
+P('\n收旧版本（只留最新那一份）：');
+收一处(path.join(TREE, 'pages'), /^Flow_Desk_[\d][\w.+-]*\.html$/, '页面 pages\\');
+收一处(path.join(TREE, 'dist'), /^Flow_Desk_setup_[\d][\w.+-]*\.exe$|^Flow_Desk_payload_[\d][\w.+-]*\.zip$/, '发布物 dist\\');
+收一处(path.join(TREE, 'update', 'packages'), /^FlowDesk_update_/, '更新包 update\\packages\\');
 
 /* ---------- ⑤ 本地打 tag：号钉在哪一笔上，一一对应 ---------- */
 function 打tag(dir, name, 谁){
