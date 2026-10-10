@@ -175,7 +175,7 @@ const label = 'Flow-Desk 便携版 ' + VER.fd;
 made.set('flow-desk-install.json', Buffer.from(JSON.stringify({
   kind: 'flow-desk-tree', label: label, made: new Date().toISOString(),
   versions: VER, packs: shelf.map(p => p.id),
-  note: '这一棵树是首装摊出来的：整文件夹删掉就算卸载，不写注册表。一个插件都不带（插件分开各自发布），升级走 设置 → 程序 → 本地更新。'
+  note: '这一棵树是首装摊出来的：整文件夹删掉就算卸载，不写注册表。一个插件都不带（插件分开各自发布），换新版本再双击一颗新的 setup 指到同一棵就是覆盖升级。'
 }, null, 2) + '\n', 'utf8'));
 made.set('安装说明.txt', Buffer.from([
   'Flow-Desk · 便携版（首装）',
@@ -201,8 +201,12 @@ made.set('安装说明.txt', Buffer.from([
   '  卸掉 = 下一次开机不再加载它那一份代码（改名单 + 刷新这一页），不是藏起来；勾选「同步清除数据」才会连它存的词库和记录一起清。',
   '  每一个组件跑的就是 data\\plugins\\<它>\\main.js，改代码对话框里存了就用新的。',
   '',
-  '更新：设置 → 程序 → 本地更新 里挑一个 FlowDesk_update_*.zip，它只换 pages\\ 和 resources\\app\\，',
-  '旧的那份挪进 update\\backups\\<时间戳>\\，装完自动开新版；data\\ 一个字节都不动。',
+  '更新：还是用这一颗 —— 下载新的 Flow_Desk_setup_<版本号>.exe，双击它、把目录指到这一棵上，点「覆盖升级」。',
+  '它会先把要换的旧的挪进 update\\backups\\<时间戳>\\ 再摊新的：resources\\app\\ 整层挪（那一格里没有你写的东西），',
+  'pages\\ 只换这一个包里带的那几个名 —— 你放在那一格里的稿子原地不动；data\\ 从头到尾一个字节不碰。',
+  '这一棵正开着的时候它一个字节都不动，会让你先退干净（右下角托盘图标上右键 → 退出）。',
+  '另外 设置 → 程序 → 本地更新 里那条挑 FlowDesk_update_*.zip 的老路还在（只换 pages\\ 和 resources\\app\\），',
+  '<id>.zip 那种包是给插件用的运输件，主程序换版用上面那一颗 exe。',
   '',
   '图标：icons\\FD_Icon.png、WNW_Icon.png、RP_Icon.png，想换成自己的图就用同名正方形 PNG（256×256 起）覆盖它，重启后换成你的图。',
   '这一份发布物只带 Flow-Desk.exe 一个：写作和练习是从 FD 的启动卡里开的，页面跟着 pages\\ 走。',

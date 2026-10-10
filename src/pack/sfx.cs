@@ -9,10 +9,15 @@
 
    只用 Windows 自带的那点东西：.NET Framework 4 的 csc.exe 编译（Win10/11 就有），
    不引第三方压缩库 —— zip 的目录自己读，压住的那一段交给 DeflateStream。
+   这一颗既管首装也管升级：目标那一棵已经在了就照原样覆盖摊一遍，动手之前先把要被换掉的旧的
+   挪进 update\backups\<时间戳>\（resources\app\ 整层挪，别的一个文件挪一份），装完就还是程序本身，
+   不靠系统里装了什么。data\ 从头到尾不碰 —— 包里一个 data\ 开头的路径都没有（publish 有一道硬闸盯着），
+   这一层也就没有被覆盖的机会。
    参数（都是自测和特殊场合用的，双击时一个都不用给）：
      --dest=<路径>   摊到哪儿（默认：这个 exe 旁边的 Flow-Desk\）
      --no-run        摊完不开程序
      --quiet         不弹窗，闷头摊（探针跑这条，看返回值和磁盘上的东西验收）
+   返回值：0 成 · 3 读不到包 · 4 摊或挪到一半错 · 5 没点安装就关了 · 6 摊完根上没有 exe · 7 那一棵正在开着
    ============================================================ */
 using System;
 using System.IO;
@@ -189,26 +194,17 @@ static class Sfx
     {
         Entry it = pl.Items.Find(delegate(Entry e){ return e.Name == "flow-desk-install.json"; });
         if(it == null) return "";
-        try{
-            string txt = Encoding.UTF8.GetString(ReadEntry(fs, pl.Start, it));
-            int i = txt.IndexOf("\"label\"");
-            if(i < 0) return "";
-            int a = txt.IndexOf('"', txt.IndexOf(':', i) + 1);
-            int b = txt.IndexOf('"', a + 1);
-            if(a < 0 || b <= a) return "";
-            return txt.Substring(a + 1, b - a - 1);
-        }catch(Exception){ return ""; }
+        try{ return Snipe(Encoding.UTF8.GetString(ReadEntry(fs, pl.Start, it))); }
+        catch(Exception){ return ""; }
     }
 
     /* ---------- 正事：把尾巴上那一包摊到 dest 里 ---------- */
     class Result { public int Files; public long Bytes; public string Error; }
 
-    static Result Extract(string self, string dest, Action<long, long> onProgress)
+    static Result Extract(string self, Payload pl, string dest, Action<long, long> onProgress)
     {
         Result r = new Result();
         try{
-            Payload pl = Open(self);
-            if(pl == null){ r.Error = "这个 exe 后面没有包：要么它不是发布出来的首装包，要么拷贝/下载被截断了。"; return r; }
             long total = pl.Total, done = 0;
             using(FileStream fs = File.OpenRead(self))
             {
@@ -236,6 +232,75 @@ static class Sfx
         return r;
     }
 
+    /* ---------- 覆盖升级用的三件事 ---------- */
+    static string Stamp(){ return DateTime.Now.ToString("yyyyMMdd-HHmmss"); }
+
+    /* 这一棵现在装的是哪一版：读树根那份 flow-desk-install.json 里 label 那一行（首装那一步写进去的）。
+       不引 JSON 库，掐字符串就够 —— 读不出来当"没记版本号"，不影响覆盖这件事。 */
+    static string Snipe(string txt)
+    {
+        int i = txt.IndexOf("\"label\"");
+        if(i < 0) return "";
+        int a = txt.IndexOf('"', txt.IndexOf(':', i) + 1);
+        int b = txt.IndexOf('"', a + 1);
+        if(a < 0 || b <= a) return "";
+        return txt.Substring(a + 1, b - a - 1);
+    }
+    static string TreeLabel(string dest)
+    {
+        try{ return Snipe(File.ReadAllText(Path.Combine(dest, "flow-desk-install.json"), Encoding.UTF8)); }
+        catch(Exception){ return ""; }
+    }
+
+    /* 正开着的程序会把它自己那颗 exe 和几个 dll 咬住，Windows 当场不让写。
+       动手之前先把要覆盖的每一个文件问一遍能不能独占打开 —— 摊到一半卡住留下半新一半旧的树，
+       比不开这一趟糟得多。返回咬住的那一个的名字，全能写就返回空。 */
+    static string Busy(string dest, Payload pl)
+    {
+        foreach(Entry it in pl.Items)
+        {
+            string to = Path.Combine(dest, it.Name.Replace('/', Path.DirectorySeparatorChar));
+            if(!File.Exists(to)) continue;
+            try{ using(FileStream t = new FileStream(to, FileMode.Open, FileAccess.Write, FileShare.None)){ } }
+            catch(IOException){ return it.Name; }
+            catch(UnauthorizedAccessException){ return it.Name; }
+        }
+        return null;
+    }
+
+    /* 旧的先去备份，再让新的进来 —— 落点和 updater.cjs 同一格（update\backups\<时间戳>\），
+       设置 → 程序 那一屏列的就是这些格子。两档口径是有理由的：
+         resources\app\ 整层挪 —— 那一格里一个用户写的东西都没有，挪干净才不会留下上一版的散文件；
+         别的一个文件挪一份 —— pages\ 同时是他放文稿的地方，整层挪走等于把他的稿子搬空。
+       中途挪不动就停下：已经挪走的都在那一格里，照着挪回去就还是上一版。 */
+    static Result Stash(string dest, Payload pl, string back)
+    {
+        Result r = new Result();
+        string app = Path.Combine(Path.Combine(dest, "resources"), "app");
+        if(Directory.Exists(app))
+        {
+            string to = Path.Combine(Path.Combine(back, "resources"), "app");
+            try{
+                Directory.CreateDirectory(Path.GetDirectoryName(to));
+                Directory.Move(app, to);
+                r.Files++;
+            }catch(Exception e){ r.Error = "旧的 resources\\app\\ 挪不动：" + e.Message; return r; }
+        }
+        foreach(Entry it in pl.Items)
+        {
+            if(it.Name.StartsWith("resources/app/")) continue;
+            string from = Path.Combine(dest, it.Name.Replace('/', Path.DirectorySeparatorChar));
+            if(!File.Exists(from)) continue;
+            try{
+                string to = Path.Combine(back, it.Name.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(to));
+                File.Move(from, to);
+                r.Files++;
+            }catch(Exception e){ r.Error = "旧的 " + it.Name + " 挪不动：" + e.Message; return r; }
+        }
+        return r;
+    }
+
     /* ---------- 界面：一句话 + 目标目录 + 一根进度条，别整花活 ---------- */
     class Dlg : Form
     {
@@ -243,15 +308,18 @@ static class Sfx
         public Button Go, Pick;
         public ProgressBar Bar;
         public Label Info, Stat;
-        public Dlg(string label, string def)
+        public Dlg(string label, string def, bool upgrade, string cur)
         {
-            Text = "Flow-Desk 首装";
+            Text = upgrade ? "Flow-Desk 覆盖升级" : "Flow-Desk 首装";
             StartPosition = FormStartPosition.CenterScreen;
             MaximizeBox = false;
             ClientSize = new Size(520, 214);
             Info = new Label();
             Info.Left = 16; Info.Top = 14; Info.Width = 488; Info.Height = 52;
-            Info.Text = label + "\r\n摊到这儿（整个文件夹挪走就算卸载，不写注册表）：";
+            Info.Text = upgrade
+                ? "这一棵已经装了 " + cur + "\r\n这一次覆盖成 " + label +
+                  " · 旧的先挪进 update\\backups\\<这一趟>，data\\ 一个字节不动\r\n就是这儿："
+                : label + "\r\n摊到这儿（整个文件夹挪走就算卸载，不写注册表）：";
             Box = new TextBox();
             Box.Left = 16; Box.Top = 72; Box.Width = 400; Box.Text = def;
             Pick = new Button();
@@ -263,7 +331,8 @@ static class Sfx
                 }
             };
             Go = new Button();
-            Go.Left = 16; Go.Top = 108; Go.Width = 120; Go.Height = 30; Go.Text = "开始安装";
+            Go.Left = 16; Go.Top = 108; Go.Width = 120; Go.Height = 30;
+            Go.Text = upgrade ? "覆盖升级" : "开始安装";
             Bar = new ProgressBar();
             Bar.Left = 16; Bar.Top = 150; Bar.Width = 488; Bar.Height = 14; Bar.Maximum = 1000;
             Stat = new Label();
@@ -275,20 +344,66 @@ static class Sfx
 
     static string DestOf(Dlg d){ return d.Box.Text.Trim().Trim('"'); }
 
-    static int Finish(Dlg d, Result r, bool run)
+    /* back 不是空 = 这一趟是覆盖升级，旧的就在那一格 */
+    /* ---------- 动手那一条道：首装和覆盖升级走同一条 ----------
+       认那一棵在不在 → 在就先把要覆盖的每一个文件问一遍能不能写（正开着的一概不动）→
+       旧的挪进 update\backups\<这一趟> → 摊新的。码和话一起带回去，界面那头只管摆。 */
+    class Job { public int Code; public string Msg; public int Files; public long Bytes; }
+
+    static Job Install(string self, Payload pl, string dest, Action<long, long> onProgress)
+    {
+        Job j = new Job();
+        bool up = IsTree(dest);
+        string back = null;
+        if(up)
+        {
+            string busy = Busy(dest, pl);
+            if(busy != null)
+            {
+                j.Code = 7;
+                j.Msg = "这一棵正在开着，先别动它：\r\n" + dest + "\r\n正被咬住的文件：" + busy +
+                    "\r\n把它退干净（右下角托盘图标上右键 → 退出），再点一次。一个字节都还没动。";
+                return j;
+            }
+            back = Path.Combine(Path.Combine(Path.Combine(dest, "update"), "backups"), Stamp());
+            Result s = Stash(dest, pl, back);
+            if(s.Error != null){ j.Code = 4; j.Msg = "没弄成：" + s.Error + "\r\n已经挪走的旧文件都在\r\n" + back; return j; }
+        }
+        Result r = Extract(self, pl, dest, onProgress);
+        if(r.Error != null)
+        {
+            j.Code = 4;
+            j.Msg = "没弄成：" + r.Error +
+                (back != null ? "\r\n已经挪走的旧文件都在\r\n" + back + "\r\n照着挪回去就还是上一版。"
+                    : "\r\n已经摊出来的那一半在\r\n" + dest + "\r\n整个文件夹删掉重来就行。");
+            return j;
+        }
+        if(!File.Exists(Path.Combine(dest, "Flow-Desk.exe")))
+        {
+            j.Code = 6; j.Msg = "摊完了，可这棵树的根上没有 Flow-Desk.exe —— 这一包不全，换个下载来源再试。";
+            return j;
+        }
+        j.Code = 0; j.Files = r.Files; j.Bytes = r.Bytes;
+        j.Msg = (up ? "覆盖升级了 " : "摊好 ") + r.Files + " 个文件 · " + MB(r.Bytes) + " → " + dest +
+            (up ? "\r\n旧的在 " + back : "");
+        return j;
+    }
+
+    static int Finish(Dlg d, Job j, bool run)
     {
         string dest = DestOf(d);
-        if(r.Error != null){
-            MessageBox.Show(d, "没摊成：" + r.Error + "\r\n已经摊出来的那一半在\r\n" + dest + "\r\n整个文件夹删掉重来就行。",
-                "Flow-Desk 首装", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return 4;
+        bool up = IsTree(dest);
+        string title = up ? "Flow-Desk 覆盖升级" : "Flow-Desk 首装";
+        if(j.Code != 0){
+            MessageBox.Show(d, j.Msg, title, MessageBoxButtons.OK,
+                j.Code == 7 ? MessageBoxIcon.Warning : MessageBoxIcon.Error);
+            if(j.Code == 7){   /* 没动他那一棵：话摆完把按钮放开，退了再点一次 */
+                try{ d.Go.Enabled = true; d.Pick.Enabled = true; d.Box.Enabled = true; d.Stat.Text = "那一棵正在开着，先退干净"; }catch(Exception){ }
+            }
+            return j.Code;
         }
-        if(!File.Exists(Path.Combine(dest, "Flow-Desk.exe"))){
-            MessageBox.Show(d, "摊完了，可这棵树的根上没有 Flow-Desk.exe —— 这一包不全，换个下载来源再试。",
-                "Flow-Desk 首装", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return 6;
-        }
-        try{ d.Bar.Value = 1000; d.Stat.Text = "摊好了 · " + r.Files + " 个文件 · " + MB(r.Bytes) + (run ? "，这就开" : ""); }catch(Exception){ }
+        try{ d.Bar.Value = 1000; d.Stat.Text = "弄好了 · " + j.Files + " 个文件 · " + MB(j.Bytes) +
+            (up ? " · 旧的在 update\\backups 里" : "") + (run ? "，这就开" : ""); }catch(Exception){ }
         if(run) Launch(dest);
         Thread.Sleep(700);
         return 0;
@@ -309,36 +424,29 @@ static class Sfx
         if(string.IsNullOrEmpty(dest)) dest = Path.Combine(Path.GetDirectoryName(self), "Flow-Desk");
         dest = Path.GetFullPath(dest);
 
-        if(IsTree(dest))
-        {
-            Say(quiet, "这儿已经有一棵 Flow-Desk 了：\r\n" + dest +
-                "\r\n升级别用这一个 —— 打开它，在 设置 → 程序 → 本地更新 里挑更新包（那才会把旧的那一份挪进备份）。");
-            return 2;
-        }
+        Payload pl = Open(self);
+        if(pl == null){ Say(quiet, "这个 exe 后面没有包，摊不出东西来（要么它不是发布出来的首装包，要么拷贝/下载被截断了）。"); return 3; }
+        string label = "Flow-Desk 便携版";
+        using(FileStream fs = File.OpenRead(self)) label = MarkerLabel(fs, pl);
+        if(string.IsNullOrEmpty(label)) label = "Flow-Desk 便携版";
 
         if(quiet)
         {
-            Result r = Extract(self, dest, null);
-            if(r.Error != null){ Console.WriteLine("没摊成：" + r.Error); return 4; }
-            if(!File.Exists(Path.Combine(dest, "Flow-Desk.exe"))){ Console.WriteLine("摊完了，但根上没有 Flow-Desk.exe"); return 6; }
-            if(run) Launch(dest);
-            Console.WriteLine("摊好 " + r.Files + " 个文件 · " + MB(r.Bytes) + " → " + dest);
-            return 0;
+            Job j = Install(self, pl, dest, null);
+            Console.WriteLine(j.Msg);
+            if(j.Code == 0 && run) Launch(dest);
+            return j.Code;
         }
 
-        Payload peek = Open(self);
-        string label = "Flow-Desk 便携版";
-        if(peek == null){ MessageBox.Show("这个 exe 后面没有包，摊不出东西来。", "Flow-Desk 首装"); return 3; }
-        using(FileStream fs = File.OpenRead(self)) label = MarkerLabel(fs, peek);
-        if(string.IsNullOrEmpty(label)) label = "Flow-Desk 便携版";
-
+        /* 窗口上那一句按默认那一条目录摆；他要是换了地方，动手那一趟重算（见下面点「开始」那一段） */
+        bool atDefault = IsTree(dest);
         Application.EnableVisualStyles();
-        Dlg d = new Dlg(label, dest);
+        Dlg d = new Dlg(label, dest, atDefault, atDefault ? TreeLabel(dest) : "");
         int code = 5;   /* 5 = 没点安装就关了 */
         d.Go.Click += delegate{
             d.Go.Enabled = false; d.Pick.Enabled = false; d.Box.Enabled = false;
             Thread th = new Thread(delegate(){
-                Result r = Extract(self, DestOf(d), delegate(long done, long total){
+                Job j = Install(self, pl, DestOf(d), delegate(long done, long total){
                     try{
                         d.BeginInvoke((Action)delegate{
                             d.Bar.Value = total <= 0 ? 0 : (int)Math.Min(1000, done * 1000 / total);
@@ -346,8 +454,9 @@ static class Sfx
                         });
                     }catch(Exception){}
                 });
-                code = Finish(d, r, run);
-                try{ d.BeginInvoke((Action)delegate{ d.Close(); }); }catch(Exception){}
+                code = Finish(d, j, run);
+                /* 7 = 那一棵正开着，一个字节都没动：话摆完让他退了再点一次，窗口留着 */
+                if(code != 7) try{ d.BeginInvoke((Action)delegate{ d.Close(); }); }catch(Exception){}
             });
             th.IsBackground = true;
             th.Start();

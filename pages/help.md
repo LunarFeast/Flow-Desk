@@ -138,7 +138,7 @@ export default {
 - **程序壳**：`Flow-Desk\src\pack\main.cjs` 壳本体、`preload.cjs` 读写盘兼容层、`updater.cjs` 更新那一段、`root.json` 指向这棵树、`smtc-watcher.ps1` 是听系统播放状态的那个隐藏小进程。
 - **程序产物**：根上只摆一个可执行文件：Flow-Desk.exe。为写和声笔输入法练习不再有各自的可执行文件、也不再有各自的窗口 —— 它们俩的代码拼在 Flow-Desk 那一张页里，卡片点一下是在同一个窗口的覆盖层里现开。根上那些 dll、`locales\`、`resources\` 是这一个 exe 用的一份运行时。
 - **更新包**：`Flow-Desk\update\packages\`，出法见第九节。
-- **发布产物**：`Flow-Desk\dist\`：`index.json` 货架清单、`components\*.zip` 逐个插件、`Flow_Desk_setup_*.exe` 首装包。出法见第九节。
+- **发布产物**：`Flow-Desk\dist\`：`index.json` 货架清单、`plugins\<id>.zip` 逐个插件、`Flow_Desk_setup_*.exe` 首装包（里头一个插件都不带，插件各自发）。出法见第九节。
 - **程序用户数据**：userdata-fd / userdata-wnw / userdata-rp（都在 `data\` 里）。IndexedDB 和 close-choice.json 在这儿；userdata-rp 里还多一份 rime-dir.json，记着指过的 Rime 目录。
 - **图标**：`Flow-Desk\icons\`，见第十节。
 
@@ -148,12 +148,13 @@ export default {
 - 改代码只改 `src\` 里的模块，出这一张页要分三趟：为写那二十份（`src\_wnw\src\`）跑 `node src\_wnw\build-kernel.mjs` 出一颗内核，组件定制那四份（`src\_wcustom\src\`）跑 `node src\_wcustom\build-kernel.mjs` 出另一颗，最后在 Flow-Desk 根上跑 `node src\_fd\build.mjs` —— 它读的是这两颗产物而不是源码，缺哪一颗就报错退出（确实要打一版不带那一家的，加 `--无内核` 或 `--无定制`）。只有声笔输入法练习那六份（`src\_build\p1.js`…`p6.js` 加 `rp-base.html`）还在同一趟里由 `src\_build\rp-kernel.mjs` 收进页面内部的一处闭包。构建只拼外壳、内核和共用底子，组件那一段它在构建日志里报一句「运行时加载（构建不拼段）」就完了。
 - `template.html` 是骨架，不动它，所有 DOM 和样式都从 js 里注。
 - build 会一段一段做语法检查，任何一段编不过就不出产物，命令行会报是哪一段。
-- 版本号只记在一处：`src\_build\version.json`（长这样：`{"shell":"1.4.0-dev","content":5}`），由 `src\_build\version.mjs` 现读。页面文件名（`Flow_Desk_<号>.html`，尾巴上的 `-dev` 表示还在开发中）、页顶那一句 `var FD_VERSION`、「关于」那页的三行号（Flow-Desk / 为写 / 声笔输入法练习，如今是同一个号）、出厂镜像里的 `package.json`、更新包的名字，全从这一处取；生成成功才把 `content` 往后加一笔，谁也不用再手抄那串号。修 bug 原地覆盖，攒够一轮才升号。
-- exe 每次启动去 `root.json` 指的目录现找页面文件，取版本号最大的那份，带 -dev 也照认。所以出新版不用重新打包。
-- 改了 `main.cjs` / `preload.cjs` 这类程序壳的东西，才需要重新铺 exe 旁边那层：根上跑 `node src\pack\build-app.mjs`；升级了运行环境之后加 `--force` 重铺。这一趟顺带把出厂原文那层铺好 —— `data\plugins\` 里每一家原样复制进 `resources\app\data\plugins\`。`data\help.md`、`data\userdata-list.md` 和 `data\ui-text.yaml`、`data\card-size.yaml` 这四份进 `resources\app\data\` 走的也是同样的真复制：链过去的话你和出厂那份就是同一个文件，你一改，出厂那一版就跟着变，「恢复出厂」和第一次开机那两份原样都成了空话。整趟里只有那一张页面的内置备份副本用硬链接省地方。改了组件想让「恢复出厂」回到新的那一版，也跑这一趟。
+- 版本号现拼成 `主.次.补丁-预发布名+build.<git 短哈希>`（眼下这一支是 `1.0.0-alpha+build.3f0be96` 这种形状）：`src\_build\version.json` 只记前两格（`{"shell":"1.0.0","pre":"alpha"}`），尾巴那个短哈希由 `src\_build\version.mjs` 现取 —— 给环境变量 `FD_BUILD` 就用它，没给就当场 `git rev-parse --short HEAD`，绝不写回 version.json（写了就钉死在某一笔提交上，下一笔就对不上）。从前那个每生成一次页面就自己加一的流水号已经撤了。页面文件名（`Flow_Desk_<号>.html`）、页顶那一句 `var FD_VERSION`、「关于」那页的三行号（Flow-Desk / 为写 / 声笔输入法练习，如今是同一个号）、出厂镜像里的 `package.json`、更新包和首装包的名字，全从这一处取，谁也不用再手抄那串号。顺序是硬规矩：先提交代码 → 拿到那一笔的短哈希 → 号注进去 → 再生成、再打包（反过来产物上那个号就是上一笔的）。
+- exe 每次启动去 `root.json` 指的目录现找页面文件，认**最近写过的那一张**（按文件时间），不再按号的大小挑 —— 号回跳过一次（1.4.0-dev 那一支跳回 1.0.0-alpha），"挑号最大的"会一律挑回老页，屏幕上跑的是上上个版本还不报错。同一分钟落的两张才比号，比的时候先把 `+build.` 之后切掉。所以出新版不用重新打包。
+- 改了 `main.cjs` / `preload.cjs` 这类程序壳的东西，才需要重新铺 exe 旁边那层：根上跑 `node src\pack\build-app.mjs`；升级了运行环境之后加 `--force` 重铺。这一趟顺带把出厂原文那层铺好 —— `data\help.md`、`data\userdata-list.md` 和 `data\ui-text.yaml`、`data\card-size.yaml` 这四份进 `resources\app\data\` 走的是真复制：链过去的话你和出厂那份就是同一个文件，你一改，出厂那一版就跟着变，第一次开机那两份原样就成了空话。整趟里只有那一张页面的内置备份副本用硬链接省地方。**插件不在这一趟里**：出厂镜像里早就没有插件那一格（程序和插件分开各自开发、各自发布），「恢复出厂」取的是 `data\plugins-factory\` 那一格 —— 它由你「导入插件」那一下自己留底，改组件想让原版跟着换新版，得回插件那一棵仓重新出包，不是跑这一趟。
 - 出更新包：跑 `node src\pack\build-update.mjs`，产物在 `update\packages\`，名字是 `FlowDesk_update_<页面版本号>_<出包时间>.zip`（只带 Flow-Desk 这一个版本号，页面里已经装着两个内核）。加 `--runtime` 是连运行时一起给的整包，加 `--dry` 只报清单不落盘。
 - 出发布产物：跑 `node src\pack\publish.mjs`，产物在 `dist\`，一共三样 —— `index.json` 货架清单（列着每个插件的名字 / 版本 / 作者 / 来源）、`plugins\<id>.zip` 逐个插件、`Flow_Desk_setup_*.exe` 首装自解压包。加 `--packs` 只出插件，加 `--zip` 只压整棵便携树，加 `--dry` 只报清单不落盘。**这一条现在挂着不跑**：它出的正是拿去分发的那三样，而授权那一份写的是「暂时不允许分发、修改、重新打包」，所以默认直接报错退出；看清单加 `--dry`，确实要出货加 `--照发`。
-- 更新包里永远没有 `data\` 的一个字节 —— 你写的书、改过的功能模块、两份词库、帮助的工作副本都在那边；包里要是冒出一串带 data 或 userdata 的路径，程序直接拒装。程序里「关于」那页选上这个 zip 就能本地更新，装完自己起来。
+- 更新包里永远没有 `data\` 的一个字节 —— 你写的书、改过的功能模块、两份词库、帮助的工作副本都在那边；包里要是冒出一串带 data 或 userdata 的路径，程序直接拒装。
+- **给用的人换版本用那一颗 exe**：`Flow_Desk_setup_<版本号>.exe` 既管首装也管覆盖升级 —— 双击它、把目录指到已有的那一棵上，点「覆盖升级」，它先把要换的旧的挪进 `update\backups\<时间戳>\`（`resources\app\` 整层挪，那一格里没有你写的东西；别的一个文件挪一份，`pages\` 只换这一个包带的那几个名，你放在那一格的稿子原地不动），再摊新的，`data\` 从头到尾不碰。那一棵正开着的时候它一个字节都不动，会让你先退干净。上面那条 zip 的本地更新是同一格落点的老路子，还在。
 
 ## 十、换图标
 
