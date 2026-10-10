@@ -125,9 +125,9 @@ const 跑 = (cmd, args) => {
 跑(process.execPath, ['src/pack/publish.mjs']);
 
 /* ---------- 旧版本就地收走（他 2026-10-10 两句：「这种多版本的地方都需要定期清理旧版本」+「只留最新，旧版转移到存档那一格」）----------
-   三个地方会堆：pages\（每生成一张写一张）、dist\（每打一颗 exe 多一份）、update\packages\（每出一次更新包多一包）。
-   只认这三种产物自己的名字，别的一个字不碰：pages\ 同时是他的文稿目录，
-   update\backups\ 是每趟装之前的旧层（留着能退回去），根上那个 备份\ 更是一个文件夹都不许动。
+   两个地方会堆：pages\（每生成一张写一张）、dist\（每打一颗 exe 多一份）。
+   只认这两种产物自己的名字，别的一个字不碰：pages\ 同时是他的文稿目录，
+   update\backups\ 是每趟覆盖升级换下来的旧东西（留着能退回去），根上那个 备份\ 更是一个文件夹都不许动。
    落点住在 src\tools\本地路径.cjs 那颗「存档落点」里（这台机器自己的位置，不进仓）；没登记就只报不动。 */
 function 挪(from, to){
   fs.mkdirSync(path.dirname(to), { recursive: true });
@@ -152,7 +152,6 @@ function 收一处(格, 认, 说明){
 P('\n收旧版本（只留最新那一份）：');
 收一处(path.join(TREE, 'pages'), /^Flow_Desk_[\d][\w.+-]*\.html$/, '页面 pages\\');
 收一处(path.join(TREE, 'dist'), /^Flow_Desk_setup_[\d][\w.+-]*\.exe$|^Flow_Desk_payload_[\d][\w.+-]*\.zip$/, '发布物 dist\\');
-收一处(path.join(TREE, 'update', 'packages'), /^FlowDesk_update_/, '更新包 update\\packages\\');
 
 /* ---------- ⑤ 本地打 tag：号钉在哪一笔上，一一对应 ---------- */
 function 打tag(dir, name, 谁){

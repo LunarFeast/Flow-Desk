@@ -20,7 +20,6 @@ import { 工区 } from '../本地路径.mjs';
 const 台 = 记账('gate-upgrade44');
 const sfx = rd('src/pack/sfx.cs');
 const pub = rd('src/pack/publish.mjs');
-const upc = rd('src/pack/updater.cjs');
 
 const 段 = 名 => {
   const 起 = sfx.indexOf('static Job ' + 名);
@@ -47,10 +46,9 @@ const Install = 段('Install');
 台.判('码 7 那一趟把三颗控件放开（不是死窗口）', /d\.Go\.Enabled = true; d\.Pick\.Enabled = true; d\.Box\.Enabled = true;/.test(sfx));
 台.判('话里说明白「一个字节都还没动」', Install.includes('一个字节都还没动'));
 
-台.题('三、旧的先去备份，落点和 zip 那一头同一格');
-台.判('备份落在 update\\backups\\<时间戳>（和 updater.cjs 同一格）', /Path\.Combine\(dest, "update"\)/.test(Install) && upc.includes("'backups'"));
-台.判('时间戳形状和 zip 那一头同一把尺（四位年两位月日 - 时分秒，两边排在一起才对）',
-  /ToString\("yyyyMMdd-HHmmss"\)/.test(sfx) && /getFullYear\(\)[\s\S]{0,120}getSeconds\(\)/.test(upc));
+台.题('三、旧的先去备份，落点和程序里「关于」列的那一格是同一处');
+台.判('备份落在 update\\backups\\<时间戳>（覆盖升级写这一格，关于那一屏读同一格）', /Path\.Combine\(dest, "update"\)/.test(Install) && /"backups"/.test(sfx));
+台.判('时间戳是四位年两位月日 - 时分秒（这一颗起的名字要能顺着排进关于那一列）', /ToString\("yyyyMMdd-HHmmss"\)/.test(sfx));
 台.判('程序里那一屏列备份是按名字排的（这一颗起的名字要能插进去，不能自成一套）',
   /\.readdirSync\(dir\)\.filter\(n => !n\.startsWith\('\.'\)\)\.sort\(\)\.reverse\(\)/.test(rd('src/pack/main.cjs')));
 台.判('整层挪只有 resources\\app\\ 这一处（Directory.Move 全文就一次）', (sfx.match(/Directory\.Move/g) || []).length === 1, (sfx.match(/Directory\.Move/g) || []).length);
@@ -90,6 +88,6 @@ if(csc && 工区){
 台.判('发布那一头仍会重编：壳比源码旧就再来一遍', /fs\.statSync\(stub\)\.mtimeMs < fs\.statSync\(stubSrc\)\.mtimeMs/.test(pub));
 台.判('首装包的名字带完整号（含 +build.短哈希那一截）', /'Flow_Desk_setup_' \+ VER\.fd \+ '\.exe'/.test(pub) && /const TAG = VER\.fd;/.test(pub));
 台.判('安装说明改口成「再双击一颗 exe 就是覆盖升级」', pub.includes('点「覆盖升级」') && pub.includes('resources\\\\app\\\\ 整层挪'));
-台.判('安装说明里 zip 那条降级成老路子，不再当唯一出口', pub.includes('那条挑 FlowDesk_update_*.zip 的老路还在'));
+台.判('安装说明里那条挑 zip 装更新的老路已经撤干净（主程序换版只剩 exe 这一颗）', !pub.includes('老路还在') && !pub.includes('本地更新'));
 
 台.收尾();

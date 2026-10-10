@@ -2337,7 +2337,7 @@ function tabData(){
       if(!r || !r.ok){ toast((r && r.msg) || '清理没排下去'); return; }
       if(await listDlg.askRestart('清理排下了：重启之后就是刚装好的样子。') === 'now') await listDlg.restart();
     }}, '一键清理所有用户数据'),
-    h('span', { class:'fd-hint' }, '删的是数据层那一格里属于你的东西（书、文稿、卡片、看板、逐字记录、插图、色卡与外观方案、界面文字与卡片大小那两份清单、帮助、浏览器存储）· 留着插件、日志、搬家账本')
+    h('span', { class:'fd-hint' }, '删的是数据层那一格里属于你的东西（书、文稿、卡片、看板、逐字记录、插图、色卡与外观方案、界面文字与卡片大小那两份清单、浏览器存储）· 留着插件、日志、搬家账本')
   ])));
   return box;
 }
@@ -2360,15 +2360,16 @@ function tabProgram(){
   draw();
   window.FD_APP.closeChoice().then(m => { if(m && m !== cur){ cur = SetCache.close = m; draw(); } });
   box.appendChild(row('关闭时', seg));
-  /* 关于这一小节管的是版本号和装更新，这两样都要问 Flow-Desk.exe 那一层，它不在就不摆 */
-  if(window.FD_APP.updInfo) aboutRows(box);
+  /* 关于这一小节摆的是本机这一份的号和东西在哪儿，这两样都要问 Flow-Desk.exe 那一层，它不在就不摆 */
+  if(window.FD_APP.aboutInfo) aboutRows(box);
   return box;
 }
-/* ---------- 关于：三个版本号 · 数据在哪儿 · 本地更新（第 16 条 · 甲案）----------
-   本地更新吃一个 zip（src\pack\build-update.mjs 出的那种）：
-   挑包 → 这一页先把包读一遍，版本号、要动哪几层、有没有程序还开着，全摆出来再决定；
-   装上那一步会先把这一版退出，由 updater.cjs 等关干净了挪文件、再自己把新版起起来。
-   data\ 不参与更新，这条是硬检查：包里带 data 或 userdata 路径的直接拒装。 */
+/* ---------- 关于：三个版本号 · 数据在哪儿 ----------
+   更新不在这一格里了（外44 四）：从前这里有一颗「挑更新包」的钮，吃一个 FlowDesk_update_*.zip，
+   由 updater.cjs 等程序关干净了挪文件。那条路整条撤了 —— 主程序换版就双击一颗新的
+   Flow_Desk_setup_<版本号>.exe，指到同一棵树上点「覆盖升级」；zip 那种形状只留给插件用。
+   被覆盖升级换下来的旧东西落在 update\backups\<时间戳>\，那一格里没有用户写的东西，
+   所以把最近的几趟列出来，让人知道旧版去哪儿了。data\ 从头到尾不参与。 */
 /* 为写和声笔输入法练习的版本号从各自那一份内核要：它们不再是 pages\ 里的独立页面，
    代码拼在 Flow-Desk 这一张页里，独立页面的文件名早就不存在了。 */
 function kernelVersion(which){
@@ -2380,51 +2381,19 @@ function aboutRows(box){
      内容一个字没变就别回写：回写会把文本节点拆了重搭，看着就是白跳一下。 */
   const about = h('div', { class:'fd-hint', style:'white-space:pre-wrap' }, SetCache.about);
   const put = s => { if(about.textContent !== s) about.textContent = s; };
-  window.FD_APP.updInfo().then(r => {
+  window.FD_APP.aboutInfo().then(r => {
     if(!r || !r.ok){ put((r && r.msg) || '版本信息没读到'); return; }
     const v = r.versions || {};
+    /* 装着的每一家一行，号取运行时真正加载的那一份说明书（发布那一趟已经把它换成出门那一次的号）；
+       没写号的那一格照实说「说明书没写号」，不编一个数出来。 */
+    const 家 = (r.packs || []).map(p => p.name + '　' + (p.version || '说明书没写号')).join('\n');
     put(SetCache.about = 'Flow-Desk ' + (v.fd || '?') + '　为写 ' + kernelVersion('wnw', '?') +
       '　声笔输入法练习 ' + kernelVersion('rp', '没装') + '\n数据在这儿：' + r.data +
-      '\n页面在这儿：' + r.pages + '（更新换这一层，数据那一层一个字都不动）' +
-      (r.backups && r.backups.length ? '\n最近的更新备份：' + r.backups.slice(0, 3).join(' · ') : ''));
+      '\n页面在这儿：' + r.pages + '（换版换这一层，数据那一层一个字都不动）' +
+      (家 ? '\n\n装着的：\n' + 家 : '') +
+      (r.backups && r.backups.length ? '\n\n最近的升级备份：' + r.backups.slice(0, 3).join(' · ') : ''));
   });
   box.appendChild(row('关于', about));
-
-  const st = h('div', { class:'fd-hint', style:'white-space:pre-wrap' }, '更新包：一个 zip，挑完先看，不会自己动手');
-  let pick = null, canGo = false;
-  const btns = h('div', { class:'fd-row' });
-  const draw = () => {
-    btns.innerHTML = '';
-    if(canGo) btns.appendChild(h('button', { class:'fd-btn' + (pick.same ? '' : ' danger'), onclick:async () => {
-      const r = await window.FD_APP.updStart(pick.zip);
-      st.textContent = (r && r.msg) || '没装成';
-      if(r && r.ok) st.textContent += '\n这一版这就关掉，装完自己起来；成没成都留着记录';
-    }}, pick.same ? '原样重装这一包' : '装上并重启'));
-    btns.appendChild(h('button', { class:'fd-btn', onclick:async () => {
-      const p = await window.FD_APP.updPick();
-      if(!p || !p.ok){ if(p && !p.cancel) st.textContent = p.msg; return; }
-      const r = await window.FD_APP.updPlan(p.zip);
-      if(!r || !r.ok){ pick = null; canGo = false; st.textContent = '这个包不能用：' + ((r && r.msg) || '读不出来'); draw(); return; }
-      pick = r; canGo = !r.busy.length;
-      const m = r.marker, mine = r.now || {}, n = m.versions || {};
-      /* 更新要换的是 Flow-Desk 那一份页面；为写和声笔输入法练习的代码拼在同一份里，
-         包里只有这一个版本号可比，本机这一行把三份号都列出来。 */
-      const lines = ['包里的版本：Flow-Desk ' + (n.fd || '?'),
-        '本机现在是：Flow-Desk ' + (mine.fd || '?') + '　为写 ' + kernelVersion('wnw') +
-        '　声笔输入法练习 ' + kernelVersion('rp')];
-      /* 号一样 = 这一包就是本机这一份：不再打「要动的是」那一行，免得看着像有更新 */
-      if(r.same) lines.push('没有要更新的：这一包和本机是同一份，装上只是原样重来一遍');
-      else lines.push('要动的是：' + r.parts + ' · ' + r.plan.pages + ' + ' + r.plan.app + ' + ' + r.plan.runtime +
-        ' 件 · 约 ' + Math.round(r.plan.bytes / 1048576) + 'MB');
-      lines.push(canGo ? '你写的那些数据不参与更新，被换掉的旧东西会留着备份'
-        : '先关掉 ' + r.busy.join('、') + '，它们正读着这些文件');
-      if(r.behind) lines.push('这一包不比本机新，确定要装再点');
-      st.textContent = lines.join('\n');
-      draw();
-    }}, pick ? '换个包' : '挑更新包'));
-  };
-  draw();
-  box.appendChild(row('本地更新', h('div', { style:'display:grid;gap:8px' }, [st, btns])));
 }
 /* ---------- 第 24 条：快捷键 ----------
    只列窗口里面用得上的键。程序不抢后台全局快捷键 —— 窗口没焦点时一个都不响应，
@@ -2441,7 +2410,6 @@ function tabKeys(){
     ['Ctrl + Enter', '便签里存这一段'],
     ['Esc', '关掉当前的对话框或覆盖层'],
     ['F11', '全屏（窗口）'],
-    ['Ctrl / ⌘ + H', '打开帮助（窗口）'],
     ['Ctrl / ⌘ + R', '重新载入页面，按住 Shift 是不读缓存的那种（窗口）'],
     ['Ctrl / ⌘ + = / - / 0', '整页放大 / 缩小 / 复原（窗口）'],
     ['Ctrl / ⌘ + Q', '退出（窗口）']

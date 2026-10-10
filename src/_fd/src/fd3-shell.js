@@ -1382,7 +1382,7 @@ const Cover = {
     const cov = document.getElementById('fdCover');
     cov.hidden = true;
     Shell.dimTop();          /* 封面收了，顶栏那两块回到前面来 */
-    /* 竖带那一档是开封面那一家留下的，关了就摘掉：下一家（帮助、为写整页）不该接着用 */
+    /* 竖带那一档是开封面那一家留下的，关了就摘掉：下一家（为写整页）不该接着用 */
     cov.classList.remove('fd-cover-band');
     document.getElementById('fdCoverBody').innerHTML = '';
     /* 封面挡着的时候换过色，卡片没重建，这会儿补上 */
@@ -2432,7 +2432,6 @@ const Settings = {
      · 「桌面」+ 一个卡片名（卡片大小那份清单）—— 桌上有这张卡就亮它，没有就先摆一张再亮
      · 「功能包 · 哪一家」—— 那一家不在桌上就先摆上来，再在那张卡里找这句话
      · 「主界面」「启动」—— 先就地找（这些句子多半就在开着的那个弹窗里），找不到才收掉弹窗和封面回到桌面重找
-     · 「帮助页」—— 打开帮助文档再找
      · 「Flow-Desk 主进程」那几行（窗口的菜单、托盘、关窗时问的那一句）—— 那是 Windows 自己的菜单和开机才出现的框，
        页面上摆不出来，只把出处报给你
      · 为写、声笔输入法练习两份页面的字 —— 只走到「那一页」这一步：那两份各是一张独立页面，
@@ -2574,14 +2573,6 @@ const Jump = {
         this.shine(el || document.querySelector('.fd-set'), el ? '就在这儿 · ' + this.label(d)
           : '这一档已经打开了，界面上找不到这句话 · ' + this.src(d));
       }, 160);
-      return;
-    }
-    if(page === '帮助页'){
-      if(typeof Help !== 'undefined') Help.open();
-      setTimeout(() => {
-        const el = this.find(page, text) || this.find('', text, true);
-        if(el) this.shine(el, '帮助文档里的这一句'); else toast('帮助文档里没找到这句 · ' + this.src(d));
-      }, 400);
       return;
     }
     /* 7 界面上正摆着的那句话 */

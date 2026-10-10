@@ -71,7 +71,7 @@ Z.题('四、五棵源码树该扫的一份不漏，那道口关得有理');
   for(const d of ['src/pack','src/_fd','src/_wnw','src/_shared']) walk2(path.join(TREE, d));
   const 界面上的话 = mjs.filter(rel => { try{ return /\btoast\(/.test(fs.readFileSync(path.join(TREE, rel), 'utf8')); }catch(e){ return false; } });
   Z.判('5 「只认 .js / .cjs」这一刀是量过的：这几份 .mjs 全是敲命令行跑的构建脚本，一句往界面上说的话都没有',
-    mjs.length === 9 && 界面上的话.length === 0, { mjs, 界面上的话 });
+    mjs.length === 8 && 界面上的话.length === 0, { mjs, 界面上的话 });
   Z.判('6 自检台（src/tools/）压根不在射程里：清单里不该混进断言句子',
     !文件.some(x => x.startsWith('src/tools/')));
 }

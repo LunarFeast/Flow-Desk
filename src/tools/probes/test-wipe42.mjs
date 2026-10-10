@@ -1,7 +1,7 @@
 /* 外42 这一批的闸（他三条点名：删「临时调试」那一档 / 数据页加一键清理 / 更新改页面文字那台小工具）
    ------------------------------------------------------------
    三件事各自钉住，每一条都报数：
-     一 · 那一档删干净了 —— 源码里注册没了、实现整块没了、帮助文档里那句入口也没了；
+     一 · 那一档删干净了 —— 源码里注册没了、实现整块没了；
          设置左边剩下的档数点得出来（少一档，不是多一档）
      二 · 一键清理这一条链接得上 —— 页面点的那一颗 → preload 那颗方法 → 主进程那条通道，
          名字一处对一处；真删排在开机那一趟，所以调用位置必须在内核认领用户目录（setPath）之前；
@@ -21,11 +21,9 @@ const U = require(ROOT + 'src/pack/uitext.cjs');
 /* ---------- 一 · 临时调试那一档删干净 ---------- */
 台.题('一 · 那一档还在不在');
 const fd4 = rd('src/_fd/src/fd4-builtin.js');
-const help = rd('pages/help.md');
 台.判('源码里不再注册「临时调试」那一档', !/SetupTabs\.add\(\s*'临时调试'/.test(fd4));
 台.判('那一档的实现整块没了（tabDebug 一处不剩）', !/tabDebug/.test(fd4));
 台.判('它自己那两张色位表也跟着没了（DBG_SLOTS / DBG_MORE）', !/DBG_SLOTS|DBG_MORE/.test(fd4));
-台.判('帮助文档里不再指那一档当入口', !help.includes('临时调试'));
 const 档数 = (fd4.match(/^SetupTabs\.add\(/gm) || []).length;
 台.数('设置里现在摆几档', 档数);
 台.判('摆的是外观 / 程序 / 快捷键 / 数据那四档', 档数 === 4
@@ -99,7 +97,7 @@ const 错行 = 标签后.filter(o => {
 台.判('标签之间那句的行号也对得上（从前差一行）', 错行.length === 0, 错行.slice(0, 2).map(o => o.line + ':' + o.text));
 
 /* ---------- 四 · 清完那一趟就得是刚装好的样子（他真点了一遍才量出来的两处） ----------
-   清理排在摆树之后：摆树刚铺好的帮助、详单、两份清单，紧接着就被这一趟删了，
+   清理排在摆树之后：摆树刚铺好的详单、两份清单，紧接着就被这一趟删了，
    于是「重启之后就是刚装好的样子」要等再下一趟才成立。而 userdata-list.md 更狠 ——
    从头到尾没有任何一处把它铺回 data\，清完就永远读不到那一屏。 */
 台.题('四 · 清完当场补铺，那几份别等下一趟');
@@ -116,9 +114,6 @@ const 三份 = (切(main, 'syncLists').match(/\[\s*'ui-text\.yaml'[^\]]*\]/) || 
 台.判('补铺只铺那两份程序生成的清单（界面文字 / 卡片大小）', 三份.includes("'ui-text.yaml'") && 三份.includes("'card-size.yaml'") && 三份.split("'").length === 5, 三份);
 台.判('用户数据详单不进出厂层（它是用户自己写的那一篇，首次安装就没有它）', !/userdata-list/.test(底本段) && !/userdata-list/.test(三份), 底本段 + ' | ' + 三份);
 台.判('仓里也没有它的一份（不在公开面、也不在镜像取件处）', !fs.existsSync(ROOT + 'src/pack/data/userdata-list.md'));
-台.判('帮助那份走的是同一趟摆树里那颗（syncHelp 在 prepareTrees 被叫到）', /syncHelp\(data,/.test(main));
-台.判('帮助那份的镜像取件处是 pages\\help.md（不再从 data\\ 取）', /SRC_PAGES,\s*'help\.md'/.test(底本段) && !/SRC_DATA,\s*'help\.md'/.test(镜));
-台.判('出厂层里确实有那一份（铺得出来，不是空话）', fs.existsSync(ROOT + 'resources/app/data/help.md'));
 
 /* ---------- 五 · 外43：插件跟主程序分开各自发布，程序这一层一个插件的字节都不带 ----------
    从前有三条路把插件塞进发布物：publish 把 data\plugins\ 打进首装树、mirror 往 resources\app\data\plugins\

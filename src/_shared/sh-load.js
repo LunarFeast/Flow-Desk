@@ -215,7 +215,7 @@ const PackLoader = {
    Electron 桥的白名单发放（两个宿主共用这一把尺）
    ----------
    说明书 appChannels 点名哪个方法，组件才拿得到哪一个；没点名的在它的上下文里根本不存在。
-   还有一道硬地板：装卸、更新、树内文件、用户数据底层、窗口控制这些通道，
+   还有一道硬地板：装卸、关于、树内文件、用户数据底层、窗口控制这些通道，
    就算哪份说明书厚着脸皮点名也不给 —— 插件禁止清单第一节那一条从这里开始是机制，不是约定。
    找桥按「自己这一框 → 父框 → 顶框」往上问一圈：桥只注在 Flow-Desk 那一框，组件不管挂在桌面上
    还是停靠里，都在同一张页的同一框，问一次就中；音乐卡在桌面和停靠里连的是同一个桥。
@@ -224,7 +224,7 @@ const PackLoader = {
 const APP_DENY = ['packList', 'packSet', 'packFile', 'packImport', 'packWipe', 'rebuild',
   'compRead', 'compWrite', 'compDelete', 'compRestore', 'compFactory', 'compList',
   'readPageFile', 'writePageFile', 'writePageBytes', 'delPageFile', 'pagePath', 'pathOf',
-  'dataRead', 'dataWrite', 'dataList', 'updInfo', 'updPick', 'updPlan', 'updStart',
+  'dataRead', 'dataWrite', 'dataList', 'aboutInfo',
   'uiTextRead', 'uiTextWrite', 'uiTextList', 'cardSizeRead', 'cardSizeWrite',
   'winCtl', 'restartApp', 'closeChoice', 'openDir', 'iconsList', 'dirTree', 'readText', 'fontList', 'onFontList',
   'ocrSwatch', 'imgPeek', 'imgOpen', 'dataDir', 'rimeDir', 'setRimeDir'];

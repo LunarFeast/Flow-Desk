@@ -61,7 +61,7 @@ head('一、出厂镜像 resources\\app\\ 比源那份落后什么');
   for(const s of p.stale) 是(s) ? say('  · 运行时自写的那份 · 人改过算正常：' + s) : bad('不一样：' + s);
   for(const s of p.missing) bad('缺：' + s);
   for(const s of p.extra) bad('多出来的：' + s);
-  if(!p.stale.length && !p.missing.length && !p.extra.length) say('  ✓ 一份不差（打更新包那趟会自动铺齐）');
+  if(!p.stale.length && !p.missing.length && !p.extra.length) say('  ✓ 一份不差（出包那一趟会自动铺齐）');
 }
 
 /* ---------- 二、同一份东西在树里出现几处，其中有没有内容不一样的 ---------- */
@@ -76,13 +76,11 @@ head('二、同一个名字出现多处 · 只报内容不一样的（一样的�
   /* 名字一样、内容本来就该不一样的那几份：产物里的 root.json 按它自己的位置重算相对路径，
      package.json 是现场生成的三个 exe 共用入口（见 mirror.mjs）；
      fd-serve.mjs 在 src\tools 下那一个是老门牌，整个文件就是一句 import 转发到 src\_fd\ 那一份（它自己写着为什么）；
-     help.md 两份各有身份 —— pages\ 那份是出厂底本、data\ 那份是归用户改的工作副本，
-     谁跟着谁走由 main.cjs 的 syncHelp() 那把尺定（他没动过工作副本才刷），所以"不一样"是常态不是毛病。
      拿名字配对比它们就是假报。插件内部的标准名字（main.js / icon.svg / manifest.json / bank.txt /
      recipe.json）也一样：每家都叫这个名，六家凑一起就成了"六个内容一种名字"，那是第一节管的事。
      build-kernel.mjs 这一颗有两份 —— 为写那一棵（src\_wnw\）和组件定制那一棵（src\_wcustom\）各有一份出
      内核的脚本，名字照同一套起（外39 定「照为写那一套分」），各拼各的源码、各出各的产物，内容本来就该不一样。 */
-  const SAME_NAME_DIFFERENT_JOB = ['root.json', 'package.json', 'fd-serve.mjs', 'help.md', 'build-kernel.mjs'];
+  const SAME_NAME_DIFFERENT_JOB = ['root.json', 'package.json', 'fd-serve.mjs', 'build-kernel.mjs'];
   const PACK_STANDARD_NAMES = ['main.js', 'manifest.json', 'recipe.json', 'bank.txt', 'icon.svg'];
   const byName = new Map();
   for(const rel of walk(ROOT, '')){

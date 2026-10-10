@@ -10,8 +10,8 @@
      node build-app.mjs --force  重铺运行时（升级 electron 后用）
 
    外20 起这一份只管根上那一层：运行时、exe 门牌、给用户换的 icons\、README.txt。
-   resources\app 那一层出厂镜像整个交给 mirror.mjs —— 因为打更新包那一趟也必须有它：
-   更新包是把 resources\app 整层送出去的，镜像不跟着刷，送出去的就是上一次出包那天的旧货。
+   resources\app 那一层出厂镜像整个交给 mirror.mjs —— 首装和覆盖升级那一颗 exe 送出去的就是这一层：
+   镜像不跟着刷，送出去的就是上一次出包那天的旧货。
    随行文件（监听脚本、桥插件）的原件在音乐遥控器的包里，app 层不收第二份，
    兜底由 main.cjs 的 landAsset() 直接走出厂插件那一格（口径见 mirror.mjs 顶上那段）。
    ============================================================ */
@@ -86,8 +86,7 @@ console.log('产物在 ' + OUT);
 
 function readme(){
   /* README 只管「拿到这棵文件夹怎么开起来」这一件事；
-     三层目录、更新、图标、MusicBee、界面文字清单这些细节全部在程序里的「帮助」（data\help.md），
-     这儿不再抄一遍 —— 抄一遍就会漏改一处，两份对不上号。 */
+     这些细节都写在发布物根上那一份 安装说明.txt 里，这儿不再抄一遍 —— 抄一遍就会漏改一处，两份对不上号。 */
   const OPEN = [
     '这一层只有一个 exe，共用同一个运行时，不需要安装：',
     '  双击 Flow-Desk.exe 开桌面工作台（右下角托盘可以退出）。',
@@ -102,13 +101,12 @@ function readme(){
     '整个 Flow-Desk 文件夹可以改名、挪到别的盘、拷到别的电脑：程序和用户数据分两层放着（pages\\ 是程序，data\\ 是你自己的东西），',
     '路径全按这个文件夹的相对位置找，挪完不用回来改任何设置。',
     '',
-    '想知道更多：打开程序，顶栏「帮助」（或按 Ctrl H）。帮助是一份明文文件 data\\help.md，用 Notepad++ 改完保存，再点开就是新的。',
-    '程序自己会第一次开机把出厂版帮助铺成 data\\help.md；找不到 data\\ 里的东西时会自动用 resources\\app\\ 里自带的兜底副本。',
+    '想知道更多：看这一层跟着的那一份 安装说明.txt —— 怎么装插件、怎么换版、东西各放在哪一层都写在里面。',
     '',
-    '更新：设置 → 程序 → 本地更新 里挑一个 FlowDesk_update_*.zip 就行，data\\ 一个字节都不动。细节和出包办法都在帮助里。',
+    '更新：下载新的 Flow_Desk_setup_<版本号>.exe，双击它、把目录指到这一棵上，点「覆盖升级」；data\\ 一个字节都不动。',
     '',
-    '给打包的人：改了 pages\\ 以外的东西（main.cjs / preload.cjs 这类程序壳），关掉程序到 src\\pack 跑 node build-app.mjs；',
-    '升级了 electron 之后加 --force 重铺运行时。打更新包（build-update.mjs）会自己先把出厂镜像铺齐，不用再记着先出一次包。',
+    '给打包的人：改了 pages\\ 以外的东西（main.cjs / preload.cjs 这类程序壳），关掉程序跑 node src\\pack\\build-app.mjs；',
+    '升级了 electron 之后加 --force 重铺运行时。发布那一趟（node src\\_build\\release.mjs）自己会先把出厂镜像铺齐，不用再记着先出一次包。',
     ''
   ].join('\r\n');
 }

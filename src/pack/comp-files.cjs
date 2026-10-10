@@ -201,7 +201,7 @@ module.exports = function make(opt){
     },
     /* ---------- 老树那一下：原版从前住在程序自带那一层（resources\app\data\plugins\），
        外43 挪进数据层。第一次开机从老位置一家家取过来，目标已经有这一家的一个字不动。
-       只取不删：老那一格在程序层，下一次更新包换程序层时自己就没了。 */
+       只取不删：老那一格在程序层，下一次换版铺程序层时自己就没了。 */
     adoptOldFactory(from){
       const fact = FACT();
       const out = { moved:[], files:0 };

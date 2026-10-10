@@ -26,7 +26,8 @@ const pub = rd('src/pack/publish.mjs');
 台.判('发布脚本每跑一次先落一笔"发布"提交当记号（源码一个字不改）', /'commit', '--allow-empty'/.test(rel) && /这一趟打包的记号/.test(rel));
 台.判('那一笔的短哈希就是这一趟的号，且传给打包', /主短 = git\(TREE, \['rev-parse', '--short', 'HEAD'\]\)/.test(rel) && /FD_BUILD: 主短/.test(rel));
 台.判('--dry 不落那一笔（看计划不長号）', rel.indexOf('if(DRY){\n  P(\'主程序') > 0);
-台.判('打包完把老页面清掉，只认 Flow_Desk_ 那一种名字（不碰文稿）', /rmSync\(path\.join\(格, n\)\)/.test(rel) && /\^Flow_Desk_/.test(rel));
+台.判('打包完把老版本挪去存档那一格（不是就地删），只认产物自己的名字、不碰文稿',
+  /function 挪\(from, to\)/.test(rel) && /存档落点/.test(rel) && /\^Flow_Desk_/.test(rel) && !/rmSync\(path\.join\(格, n\)\)/.test(rel));
 
 台.题('二、发布脚本那九条');
 台.判('① 主仓有没提交的改动就停下报清单（不替他提交主仓）', /status', '--porcelain'/.test(rel) && rel.includes('要么提交掉，要么这一轮别发'));

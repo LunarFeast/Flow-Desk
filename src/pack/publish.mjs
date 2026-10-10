@@ -50,7 +50,7 @@ const PACKS_DIR = path.join(DATA, 'plugins');
 const OUT_DIR = path.resolve(val('--out', path.join(TREE, 'dist')));
 const EXE_NAME = 'Flow-Desk.exe';
 
-/* ---------- 版本号：和 build-app.mjs / build-update.mjs 同一个取法，各写各的谁也不碰谁 ---------- */
+/* ---------- 走目录、比版本号大小：这一份发布脚本到处在用。号本身从 _build/version.mjs 取，见下面 ---------- */
 function walk(dir, base){
   const out = [];
   base = base || '';
@@ -124,7 +124,7 @@ for(const d of ['locales']){
 }
 /* 二、app 层：外壳读的那一份代码 + 自带的兜底页面/数据 + 默认图标，整层跟着走 */
 addLayer('resources/app/', APP);
-/* 三、页面层：当前这一版 + 帮助明文这些非产物 */
+/* 三、页面层：当前这一支号那一张页 */
 addLayer('pages/', PAGES, rel => superseded(rel));
 /* 四、源码：重新生成页面要读的（node_modules 一个字节都不带 —— 生成页面只用 node 自带模块） */
 addLayer('src/', path.join(TREE, 'src'), rel => inNodeModules(rel) || /(^|\/)\.[^/]/.test(rel));
@@ -138,15 +138,17 @@ if(!assertClean(PACKS_DIR, '发插件')){ console.error('插件越界没清完�
 const packs = packScan(PACKS_DIR).filter(p => !SKIP.has(p.id));
 
 /* ---------- 货架：一个包压成一包 zip，清单里写清它是什么来路 ---------- */
-function packZip(p){
+function packZip(p, 用了号){
   const m = p.manifest;
   const names = Array.from(p.files.keys()).sort();
   if(!names.includes('manifest.json')) throw new Error('包 ' + p.id + ' 里没有 manifest.json');
   const entries = names.map(name => ({
     name,
-    /* 说明书按发布这份重序列化一遍：字段顺序、缩进都定下来，压出来的包字节可复现 */
+    /* 说明书按发布这一趟重序列化一遍：字段顺序、缩进都定下来，压出来的包字节可复现；
+       版本号这一格换成发布脚本传进来的那一个 —— 源码里那一格是人手写的，不动它就永远老在原地，
+       用户导入之后在「关于」里看到的就是上一个号。 */
     data: name === 'manifest.json'
-      ? Buffer.from(JSON.stringify(m, null, 2) + '\n', 'utf8')
+      ? Buffer.from(JSON.stringify(Object.assign({}, m, { version: 用了号 }), null, 2) + '\n', 'utf8')
       : p.files.get(name)
   }));
   return writeZip(entries);
@@ -154,12 +156,13 @@ function packZip(p){
 const shelf = [];
 for(const p of packs){
   if(p.error) continue;
-  const buf = packZip(p);
   const m = p.manifest;
+  /* 发布脚本传进来的那一家自己的那一串优先；没传（单独跑 publish）才退回说明书那一格 */
+  const 出 = (递来的家 && 递来的家[m.id] && 递来的家[m.id].version) || m.version;
+  const buf = packZip(p, 出);
   shelf.push({
     id: m.id, name: m.name, desc: m.desc || '',
-    /* 版本号：发布脚本传进来的那一家自己的那一串优先；没传才退回说明书那一格 */
-    version: (递来的家 && 递来的家[m.id] && 递来的家[m.id].version) || m.version,
+    version: 出,
     author: m.author || '', source: m.source || '', icon: m.icon || '',
     host: m.host || ['fd'], order: m.order || 100, minShell: m.minShell || '0',
     file: 'plugins/' + m.id + '.zip',
@@ -202,8 +205,8 @@ made.set('安装说明.txt', Buffer.from([
   '  data\\     你自己长出来的东西，更新永远不会碰这一层：',
   '            <书名>\\（正文和它的历史快照）、plugins\\（你装的插件和改过的代码）、',
   '            plugins-factory\\（导入那一下自动留的原版，「恢复出厂」取的就是这一格）、',
-  '            gen-log\\（生成记录）、<包名>-bank\\（组件自带的词库）、help.md（帮助的工作副本）、logs\\（运行日志）',
-  '  update\\   更新那一摊自己待着：packages\\（更新包）、backups\\（每趟装之前的旧层）、result.txt（成没成的账）',
+  '            gen-log\\（生成记录）、<包名>-bank\\（组件自带的词库）、logs\\（运行日志）',
+  '  update\\   覆盖升级那一摊自己待着：backups\\（每一趟换下来的旧东西，照原样挪回去就还是上一版）',
   '  src\\      Flow-Desk 自己的源码：只有改了它才需要重新生成页面（功能模块不在这里，装卸和改功能代码都不用这一趟）',
   '',
   '这一份发布物里一个插件都没有 —— 插件跟主程序分开各自开发、各自发布，要哪家自己去那一家的仓库拿。',
@@ -219,7 +222,6 @@ made.set('安装说明.txt', Buffer.from([
   '它会先把要换的旧的挪进 update\\backups\\<时间戳>\\ 再摊新的：resources\\app\\ 整层挪（那一格里没有你写的东西），',
   'pages\\ 只换这一个包里带的那几个名 —— 你放在那一格里的稿子原地不动；data\\ 从头到尾一个字节不碰。',
   '这一棵正开着的时候它一个字节都不动，会让你先退干净（右下角托盘图标上右键 → 退出）。',
-  '另外 设置 → 程序 → 本地更新 里那条挑 FlowDesk_update_*.zip 的老路还在（只换 pages\\ 和 resources\\app\\），',
   '<id>.zip 那种包是给插件用的运输件，主程序换版用上面那一颗 exe。',
   '',
   '图标：icons\\FD_Icon.png、WNW_Icon.png、RP_Icon.png，想换成自己的图就用同名正方形 PNG（256×256 起）覆盖它，重启后换成你的图。',

@@ -26,7 +26,7 @@ export const FORBID = {
   delPageFile: '不开放', pagePath: '不开放', pathOf: '不开放',
   packList: '不开放（装卸归宿主）', packSet: '不开放（装卸归宿主）', packWipe: '不开放（装卸归宿主）',
   packImport: '不开放（装卸归宿主）', rebuild: '不开放（重新生成页面归宿主）',
-  updInfo: '不开放（更新归宿主）', updPick: '不开放', updPlan: '不开放', updStart: '不开放',
+  aboutInfo: '不开放（关于那一格归宿主）',
   winCtl: '不开放（窗口归宿主）', restartApp: '不开放', closeChoice: '不开放',
   Store: 'ctx.store', Settings: 'ctx.settings', Modal: 'ctx.dialog', Overlay: 'ctx.dialog',
   Cover: 'ctx.cover', SetupTabs: '插件自己的齿轮对话框 settings(ctx)',

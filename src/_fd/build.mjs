@@ -36,13 +36,13 @@ if(!assertClean(path.join(TREE.data, 'plugins'), '生成 Flow-Desk 页面')) pro
    它跟着从构建里摘掉，文件本身搬进 备份\2026-10-05-撤Rime配色\，没有直接删。
    fd8-tools.js 是中立工具的 FD 侧适配，必须排在 _shared/ 那几段前面；
    fd5-load.js 排在 fd8 之后：它要交上去的 DATA_PRE / ToolKv 都在那儿定义；
-   fd7-help.js 排在 boot 前面：帮助文档要在启动流程跑起来之前就挂到顶栏上 */
+   从前这里还排着一颗 fd7-help.js，为的是帮助文档能在启动流程跑起来之前挂到顶栏 —— 文档整份撤了（外44 六），它跟着摘掉 */
 const parts = ['../_shared/sh-rand.js','../_shared/sh-store.js','../_shared/sh-packs.js','../_shared/sh-load.js','../_shared/sh-text.js','../_shared/sh-color.js','../_shared/sh-ico.js','../_shared/sh-font.js','fd10-size.js','fd2-store.js','fd3-shell.js','fd3-lib.js','fd11-cards.js','fd12-rime-colors.js','fd13-colour-v1.js','fd9-title.js','fd4-builtin.js','fd8-tools.js','fd5-load.js',
   '../_shared/sh-style.js','../_shared/sh-look.js','../_shared/sh-doc.js','../_wcustom/wnw-custom-kernel.js',
   '../_shared/sh-ttml.js',
   '../_shared/sh-mus.js',
   '../_shared/sh-icode.js',
-  '../_shared/sh-bank-ui.js','../_shared/sh-log.js','fd7-help.js'];
+  '../_shared/sh-bank-ui.js','../_shared/sh-log.js'];
 /* 组件定制那四份（词库底层 / 生成器 / 向导 / 改代码）从外39 起不再一份一份拼：
    它们住在 src\_wcustom\src\，由那一棵自己的 build-kernel.mjs 出成上面那一份产物。
    排的位置就是从前 sh-banks 那一格 —— 这四份全是纯声明，落在整页顶层哪一处都不影响求值，

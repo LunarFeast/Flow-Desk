@@ -464,16 +464,9 @@ window.FD_APP = {
     ipcRenderer.on('rebuild:done', wrap);
     return () => { try{ ipcRenderer.removeListener('rebuild:done', wrap); }catch(err){} };
   },
-  /* ---------- 本地更新（第 16 条 · 甲案）：看版本 / 挑包 / 看包 / 装包 ----------
-     装包那一步主进程会把这一版退出、由 updater.cjs 装完再起来，所以关于页要先把话说明白再点。 */
-  async updInfo(){ try{ return await ipcRenderer.invoke('upd:info'); }
-    catch(e){ return { ok:false, msg:'更新通道没接上：' + ((e && e.message) || e) }; } },
-  async updPick(){ try{ return await ipcRenderer.invoke('upd:pick'); }
-    catch(e){ return { ok:false, msg:'挑包对话框没起来：' + ((e && e.message) || e) }; } },
-  async updPlan(zip){ try{ return await ipcRenderer.invoke('upd:plan', String(zip || '')); }
-    catch(e){ return { ok:false, msg:'这个包读不出来：' + ((e && e.message) || e) }; } },
-  async updStart(zip){ try{ return await ipcRenderer.invoke('upd:start', String(zip || '')); }
-    catch(e){ return { ok:false, msg:'装不起来：' + ((e && e.message) || e) }; } },
+  /* ---------- 关于：本机这一份是什么号、东西在哪儿（挑 zip 装更新那一路已经撤了）---------- */
+  async aboutInfo(){ try{ return await ipcRenderer.invoke('about:info'); }
+    catch(e){ return { ok:false, msg:'关于那一格没接上：' + ((e && e.message) || e) }; } },
   /* ---------- 自绘标题栏：最小化 / 最大化 / 关闭 / 菜单里那几项 ----------
      动作名见 main.cjs 的 winCtl；返回的是最新窗口状态 { maximized, fullscreen }。
      没打包在 Electron 里跑（直接开 html）时 invoke 会抛，页面那边当没这功能就行。 */
@@ -558,11 +551,6 @@ window.FD_APP.mediaOnPlayers = fn => { if(typeof fn === 'function') playFans.pus
 ipcRenderer.on('fd:close-ask', () => {
   try{ closeAsk(); }
   catch(e){ ipcRenderer.send('win:closeAnswer', 'tray'); }
-});
-/* 菜单里的「帮助文档」：页面自己定义 window.FD_openHelp，兼容层只负责叫它 */
-ipcRenderer.on('fd:help', () => {
-  try{ if(typeof window.FD_openHelp === 'function') window.FD_openHelp(); }
-  catch(e){}
 });
 /* 最大化 / 全屏一换，自绘标题栏那个按钮的长相要跟着换 */
 const winFans = [];

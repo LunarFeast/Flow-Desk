@@ -2,14 +2,14 @@
    出厂镜像那一层（resources\app\）：铺它（apply）和比它（plan）都走这一份。
 
    为什么要从 build-app.mjs 里抽出来 —— 镜像过去只有「出包」这一趟会刷，
-   而更新包是把 `resources\app\` 整层塞进包里送出去的（build-update.mjs 的 addLayer）：
-   不出包就打更新包，送出去的就是上一次出包那天的旧镜像，装了它的机器「恢复出厂」
+   而首装和覆盖升级那一颗 exe 是把 `resources\app\` 整层塞进包里送出去的：
+   出包那一趟不刷镜像，送出去的就是上一次出包那天的旧镜像，装了它的机器「恢复出厂」
    会还原到旧代码，而且一句错都不报。2026-10-06 量到过一次实的：
    镜像里 main.cjs 停在 08:51、smtc-watcher.ps1 停在 13:35、界面文字清单少 96 行。
 
    口径是他 2026-10-06 定的那句：每次更新之前先把当前版本放进出厂备份，再动运行那一份，
    所以出厂备份最多比运行版本落后一轮 —— 落到代码上就是「收集清单之前先 apply 一次」，
-   加上 updater 本来就把旧的整层挪进 update\backups\<这一趟>\。
+   加上覆盖升级那一颗本来就把旧的整层挪进 update\backups\<这一趟>\。
 
    plan() 只比不写（src\tools\audit.mjs 每轮开工前跑它），apply() 才落盘。
    两个都吃同一份 jobs()，不会出现"比的是 A 铺的是 B"。
@@ -31,7 +31,7 @@ const TREE = process.env.FD_TREE ? path.resolve(process.env.FD_TREE) : OUT;
 /* 和 _build/tree.cjs 一把尺：构建脚本落在哪个名字上都对（程序开机第一件事就是把中文三层改名，
    三个程序还开着的时候改不动，所以树里可能还是老名字）。内置副本必须跟着真目录走 ——
    找不到就不打进产物，resources\app 那份兜底会被 rmSync 清空，等于把兜底撤了。
-   程序自己（读数据、装更新包）只认英文名，不留老名字的后门。 */
+   程序自己（读数据、换版）只认英文名，不留老名字的后门。 */
 const SRC_PAGES = pick([path.join(TREE, 'pages'), path.join(TREE, '页面')]) || path.join(TREE, 'pages');
 const SRC_DATA = pick([path.join(TREE, 'data'), path.join(TREE, '数据')]) || path.join(TREE, 'data');
 const RES = path.join(OUT, 'resources', 'app');
@@ -60,9 +60,9 @@ function sameBytes(a, b){
    这样 fdapp:// 的 URL 不变，页面里写的相对路径照样命中。
    同一块盘上改用硬链接铺：兜底那份不额外占地方，整个文件夹拷去别的电脑时链接会自然摊平成普通文件，
    内容一个字不少；链接建不上（跨盘）就退回复制。
-   只有页面走这条。help.md 和 userdata-list.md 这两份出厂底本必须真复制（real:true）：
+   只有页面走这条。两份出厂清单（界面文字 / 卡片大小）必须真复制（real:true）：
    它们和用户的 data\ 里那一份是同一个名字，链上去就成了同一个文件 —— 用户改了底本就跟着变，
-   「恢复出厂」和 syncHelp 里那把「他没动过才刷新」的尺都作废了。跟出厂清单、出厂组件一个口径。 */
+   「恢复出厂」那把「他没动过才刷新」的尺就作废了。和出厂组件一个口径。 */
 function into(src, dst){
   fs.mkdirSync(path.dirname(dst), { recursive:true });
   fs.rmSync(dst, { force:true });
@@ -124,14 +124,6 @@ function jobs(){
   const page = fs.existsSync(当前) ? 当前 : pickLatest(SRC_PAGES, 'Flow_Desk_*.html');
   if(page) out.push({ k:'file', note:'页面兜底', from:page, to:path.join(RES, 'pages', path.basename(page)) });
   else console.log('  ! ' + SRC_PAGES + ' 里没有 Flow_Desk_*.html，页面兜底这份没打进产物');
-  /* 出厂底本：帮助那一份的原件就是 pages\help.md（程序读的是它），跟着更新走。
-     2026-10-10 外42 改根：这一处从前和「用户数据详单」一起从 data\ 那一格取件 —— 可那一格是用户层，
-     「一键清理所有用户数据」删的就是它。取不到件的时候这一层会被撤掉（顶上那句注释写的就是这件事）：
-     07:35 那一趟铺镜像就照着清理之后的空 data\ 铺，两份底本一起没了。
-     详单那一份从此不进出厂层，也不进仓：它是用户自己写的那一篇（文件开头就写着「用 Notepad++ 改完保存」），
-     首次安装本来就没有它 —— 那一屏点开说「读不到」才是对的样子（他 2026-10-10 的原话）。 */
-  out.push({ k:'file', real:true, note:'出厂底本 · 第一次开机照这份铺成用户那一份',
-    from:path.join(SRC_PAGES, 'help.md'), to:path.join(RES, 'data', 'help.md') });
   /* 两份清单的出厂那份（#270）：程序第一次开机照这份铺到用户的 data\ 里（syncLists） */
   for(const name of ['ui-text.yaml', 'card-size.yaml'])
     out.push({ k:'file', real:true, note:'出厂清单 · 界面文字 / 卡片大小',
@@ -151,7 +143,7 @@ function jobs(){
   }
   /* 插件那一整格从前铺在这里（resources\app\data\plugins\）：「恢复出厂」和随行文件的兜底都取这一层。
      外43 撤了 —— 插件跟主程序分开各自开发、各自发布，程序这一层不带一个插件的字节；
-     而且这一层每次更新包都被整个换掉，用户的原版放进去等于交给下一趟更新撤走。
+     而且这一层每次换版都被整个换掉，用户的原版放进去等于交给下一趟换版撤走。
      现在原版住在 data\plugins-factory\，导入那一下由 main.cjs 的 keepOriginal() 留，恢复出厂取那一格。
      词库底本那一段跟着一起撤：它的来源本来就是这里的插件包，包里没插件了也就没有底本可落
      （撤之前那一趟也是空转 —— 七家说明书里没一家写 bank）。 */
@@ -164,7 +156,7 @@ function jobs(){
   /* 随包内置素材那一层（外31 一组：纹理那 6 张，24 MB）不在这里铺，也不是漏了：
      ① fdapp:// 那套映射只按四个门牌找文件（页面层 → 树根 → 自带的 pages → 自带的 data，main.cjs 的 serve），
         resources\app\material 这一格页面根本取不到，铺在这儿就是一份没人认的字节；
-     ② build-update.mjs 是把 resources\app 整层塞进包的，铺进来等于每一个更新包多背 24 MB。
+     ② 送出去那一颗 exe 是把 resources\app 整层塞进包的，铺进来等于每一颗包多背 24 MB。
      所以这一层只有一个铺点：build-app.mjs 从 src\pack\material 铺到 Flow-Desk\material（树根那一层，页面按相对地址取，
      和根上 icons\ 同一待遇 —— 用户那一格 keepExisting，他自己换的图不被出包吃掉）。
      要撤这一条得先把 main.cjs 的门牌加上第五个，再想包体积的事，别只在这儿补一颗 job。 */
@@ -227,7 +219,7 @@ function plan(){
   return { stale, missing, extra, sameCount:same.length, res:RES, tree:OUT };
 }
 
-/* ---------- 真铺：build-app.mjs 和 build-update.mjs 吃这个 ----------
+/* ---------- 真铺：build-app.mjs 和发布那一趟（release.mjs）吃这个 ----------
    第一刀是整个抹掉 resources\app 再照活儿清单铺：留着一层旧的就等于把"上一次那一份"混进这一次的产物里
    —— 现在盘上那份 resources\app\plugin\mb_FlowDesk.dll 就是这么留下的（外20 之后 app 层不收插件了，
    兜底改走出厂插件那一格，可这个目录不抹就一直跟着包发）。 */

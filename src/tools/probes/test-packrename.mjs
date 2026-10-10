@@ -37,7 +37,7 @@ try{ 全 = execSync('git -C "D:/Programs/Flow-Desk" -c core.quotePath=false grep
 catch(e){ if(String(e.status) !== '1' || e.stdout.trim()) throw e; }
 const 剩 = 全.split(/\r?\n/).filter(x => x && !该留.includes(x));
 台.数('除那张表和这台探针之外还带旧名的文件', 剩.length);
-台.判('源码 / 帮助 / 图标 / 插件树里一处旧名不剩，旧名字只活在改名那张表和这台探针上',
+台.判('源码 / 图标 / 插件树里一处旧名不剩，旧名字只活在改名那张表和这台探针上',
   剩.length === 0 && 该留.every(n => 全.includes(n)), 剩.join(' | ') || 全 || '（连表里都找不到旧名了，那这张表改了形状）');
 /* 盘上那一格：目录名、说明书 id、名单三样都得跟着换，缺一样就是「一半新一半旧」 */
 const 格 = ROOT + 'data/plugins';

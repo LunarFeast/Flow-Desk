@@ -278,7 +278,7 @@ const 页 = 假.__B;
 }
 
 Z.题('七、他说的那一句：这次更新之后书的数据会不会丢');
-const 造页 = rd('src/_fd/build.mjs'), 打包 = rd('src/pack/build-update.mjs'), 铺 = rd('src/pack/mirror.mjs');
+const 造页 = rd('src/_fd/build.mjs'), 打包 = rd('src/pack/publish.mjs'), 铺 = rd('src/pack/mirror.mjs');
 {
   /* 写成什么样不算，写「到哪几颗」才算：把两份脚本里所有写盘的目标名抠出来对一遍 */
   const 写目标 = [...new Set((造页.match(/fs\.(?:writeFileSync|appendFileSync|rmSync|mkdirSync)\((\w+)/g) || [])
@@ -287,10 +287,8 @@ const 造页 = rd('src/_fd/build.mjs'), 打包 = rd('src/pack/build-update.mjs')
     写目标.sort().join(',') === 'OUT,OUT_DIR' && /const OUT_DIR = TREE\.pages/.test(造页)
     && /const OUT = path\.join\(OUT_DIR, 页名\(版\)\)/.test(造页)
     && /return 'Flow_Desk_' \+ \(用了 \|\| 号\(\)\) \+ '\.html'/.test(rd('src/_build/version.mjs')), 写目标);
-  const 层 = [...new Set((打包.match(/addLayer\('([^']+)'/g) || []).map(x => x.replace(/addLayer\('([^']+)'/, '$1')))];
-  Z.判('48 更新包进包的层是页面层 + 程序壳 + 运行时三棵，名单里没有树里那一棵 data\\（用户写的书一个字节都不进包）',
-    层.sort().join(',') === 'flow-desk/pages/,flow-desk/resources/app/,flow-desk/runtime/'
-    && !/addLayer\('[^']*[\\/]data[\\/]/.test(打包), 层);
+  Z.判('48 首装和覆盖升级那一颗 exe 带的是整棵树，publish 顶上那道硬闸盯着 data\ 这一格（用户写的书一个字节都不进包）',
+    打包.includes("k === 'data' || k.startsWith('data/')") && /process\.exit\(1\)/.test(打包));
   Z.判('49 程序壳那一层收 src\\pack 全部 .cjs：新加的 backup.cjs 不用补名单就进得了产物',
     铺.includes('.filter(x => /\\.(cjs|ps1)$/.test(x))') && /checkShellRequires/.test(铺));
   Z.判('50 主进程那一头默认就数据层一棵（用户配置 data\\userdata-fd 本就在它底下，不并列成第二处、少抄一遍）',

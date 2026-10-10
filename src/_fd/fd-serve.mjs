@@ -17,7 +17,7 @@ import makeComp from '../pack/comp-files.cjs';
 
 /* 源码定在 Flow-Desk\src\_fd：页面在 pages\、用户数据在 data\（第 15 条），
    两个都按相对位置找，整个 Flow-Desk 挪盘也能起服务。
-   页面里写的还是老的同级相对路径（<词库目录>/…、help.md），
+   页面里写的还是老的同级相对路径（<词库目录>/…），
    所以页面层找不到时退回数据层再找一次，这一份兜底才仍然能用。 */
 const PORT = +(process.env.PORT || 8791);
 const HERE = path.resolve(import.meta.dirname);

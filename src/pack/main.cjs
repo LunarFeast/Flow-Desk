@@ -18,13 +18,13 @@ const netNode = require('net');   /* 电子那个 net 是发请求的，端口�
 const ROOTS = loadRoots();
 /* ---------- 一棵树分三层：pages\ 可整层覆盖，data\ 更新永不碰，update\ 是更新那一摊（第 15 条）----------
    Flow-Desk\
-     pages\   出厂的 html 产物、帮助原件、图标资源 —— 软件更新就是换掉这一层（连同运行时和 exe）
+     pages\   出厂的 html 产物、图标资源 —— 软件更新就是换掉这一层（连同运行时和 exe）
      data\    你写的书（<书名>\history\、assets\）、你自己改过的功能模块和配方 plugins\、
               导入时留的原版 plugins-factory\、
-              生成记录 gen-log\、组件自带的词库 <包名>-bank\、help.md 的工作副本、
+              生成记录 gen-log\、组件自带的词库 <包名>-bank\、
               userdata-list.md（设置·数据 那个「用户数据详单」读的那份）、
               还有 userdata-fd（Electron 那份用户目录：便签日程配色、写作稿子、练习记录、缓存）、logs\
-     update\  更新包 packages\、每趟装之前的旧层 backups\、成没成的账 result.txt
+     update\  换版那一摊自己待着：backups\<时间戳>\（每一趟覆盖升级换下来的旧东西，照着挪回去就还是上一版）
    三层名字全英文（2026-10-01 他拍的 D 案：不留中文别名）。老名字的 页面\ 数据\ 更新\ 由开机第一
    件事 prepareTrees() 自己改名搬正；搬不动（别的程序还占着）就一句大白话把程序停在这儿，
    绝不带着半截改名往下走 —— 代码只认英文名，半截改名等于让他打开一份空数据。
@@ -140,9 +140,9 @@ function userWipe(){
   return out;
 }
 const WIPE = userWipe();
-/* 清掉的那几份里有帮助、用户数据详单和两份清单 —— 它们本来就是开机那一趟（摆树）从 resources\app\data
+/* 清掉的那几份里有用户数据详单和两份清单 —— 它们本来就是开机那一趟（摆树）从 resources\app\data
    铺下来的。可这一趟清在摆树之后，铺好的又被删了，于是「重启之后就是刚装好的样子」要等再下一趟才成立：
-   头一次开机点清理的人，那一整趟点开帮助和详单都是「读不到」。所以清完当场把摆树那一趟再走一遍 ——
+   头一次开机点清理的人，那一整趟点开详单都是「读不到」。所以清完当场把摆树那一趟再走一遍 ——
    它认的就是「这一份不在就铺一份、在就一个字不动」，重跑不改任何已有的东西。 */
 if(WIPE.deleted.length){
   try{ prepareTrees(TREE).log.forEach(s => WIPE.log.push('清完补铺：' + s)); }
@@ -265,7 +265,7 @@ function prepareTrees(tree){
   let pages = fs.existsSync(legacyPages) ? legacyPages : null;
   /* ---------- B. 更老那种布局：用户数据还挤在 pages\ 里、userdata-* 还散在树根 ----------
      分两种：legacyData —— 数据还在 pages\ 里头，不搬程序起来就是个空树，这种非搬不可；
-             misc —— 只是零碎没归位（userdata-* 在树根、日志在 exe 旁边、help 工作副本没落），
+             misc —— 只是零碎没归位（userdata-* 在树根、日志在 exe 旁边），
                      不碍着读，占用就下回开机再弄。 */
   let legacyData = false, misc = false;
   if(pages) try{
@@ -276,7 +276,6 @@ function prepareTrees(tree){
     }
   }catch(e){}
   if(!misc) for(const w of ['fd', 'wnw', 'rp']) if(fs.existsSync(path.join(tree, 'userdata-' + w))){ misc = true; break; }
-  if(!misc && !fs.existsSync(path.join(data, 'help.md'))) misc = true;
   if(!misc) for(const n of ['日志']) if(fs.existsSync(path.join(tree, n))){ misc = true; break; }
   if(legacyData || misc){
     const busy = runningSiblings();
@@ -311,11 +310,6 @@ function prepareTrees(tree){
       }
     }
   }
-  /* help.md：出厂那份留在 pages\ 里跟着更新走，工作副本落在 data\，页面上读的是工作副本。
-     工作副本是给用户自己改的，所以刷新它之前先问一句"他动过没有"：旁边记一份 help-shipped.json
-     （出厂版的内容 hash），hash 对得上 = 他没动过 → 直接换新；对不上 = 他改过 → 一个字不碰，只记账。
-     旧版的帮助是 help.html：那份文件一个字不动、也不删，只是不再读它（换格式的账记在日志里）。 */
-  syncHelp(data, pages, log);
   /* 两份清单（界面文字 / 卡片大小）第一次开机也从自带那一层落到 data\，落地之后这一份归用户。 */
   syncLists(data, log);
   /* 插件不再跟着程序发：外43 撤掉了「开机把自带那一层铺成插件层」那一步 ——
@@ -329,41 +323,6 @@ function prepareTrees(tree){
   }catch(e){ log.push('原版那一格没搬成：' + (e && e.code || e)); }
   save();
   return { log, blocked: blocked.join('；') };
-}
-/* 一份文件的 sha1（读不到就空串）：只用来判"这份有没有被人改过" */
-function fileHash(f){
-  try{ return require('crypto').createHash('sha1').update(fs.readFileSync(f)).digest('hex'); }catch(e){ return ''; }
-}
-function syncHelp(data, pages, log){
-  const work = path.join(data, 'help.md'), stamp = path.join(data, 'help-shipped.json');
-  const src = [path.join(pages || '', 'help.md'), path.join(PAGES_BUNDLED, 'help.md'),
-    path.join(DATA_BUNDLED, 'help.md')].find(x => { try{ return x && fs.statSync(x).isFile(); }catch(e){ return false; } });
-  if(!src) return;
-  const srcHash = fileHash(src);
-  let rec = { hash:'' };
-  try{ rec = JSON.parse(fs.readFileSync(stamp, 'utf8')); }catch(e){}
-  try{
-    if(!fs.existsSync(work)){
-      fs.mkdirSync(data, { recursive:true });
-      fs.copyFileSync(src, work);
-      fs.writeFileSync(stamp, JSON.stringify({ hash: srcHash }, null, 2));
-      log.push('help.md 工作副本第一次落地：' + path.basename(src) + ' → data\\help.md');
-      if(fs.existsSync(path.join(data, 'help.html')))
-        log.push('旧的 data\\help.html 原样留着不删；程序现在读的是 data\\help.md，你改过旧版的话自己把内容对过来');
-      return;
-    }
-    if(rec.hash === srcHash) return;                        /* 出厂版没动，什么都不做 */
-    if(fileHash(work) !== rec.hash){                        /* 他自己改过工作副本：不覆盖，只说一次 */
-      if(rec.pending !== srcHash){
-        fs.writeFileSync(stamp, JSON.stringify({ hash: rec.hash, pending: srcHash }, null, 2));
-        log.push('出厂版 help.md 更新了，但你改过 data\\help.md，这份一个字没动 —— 要合自己拿 pages\\help.md 对一下');
-      }
-      return;
-    }
-    fs.copyFileSync(src, work);
-    fs.writeFileSync(stamp, JSON.stringify({ hash: srcHash }, null, 2));
-    log.push('help.md 工作副本跟着出厂版刷新（你没改过它）');
-  }catch(e){ log.push('help.md 没弄成：' + (e && e.code || e)); }
 }
 /* 两份清单的自动落地（#270）：界面文字 ui-text.yaml、卡片大小 card-size.yaml 的真身就是
    data\ 里这两份明文，出厂那份跟着程序走（resources\app\data\）。第一次开机把自带那份铺到
@@ -474,7 +433,7 @@ function nextPick(){
 }
 
 /* ---------- 选文件、选目录记上一次那一处（外21 乙-1）----------
-   各记各的，不是一条全局记忆：壁纸记壁纸的来处、更新包记更新包的来处，互不串。
+   各记各的，不是一条全局记忆：壁纸记壁纸的来处、插件包记插件包的来处，互不串。
    键用的是调用方本来就传的那个 id（FileSystemAccess 那套标准字段，真浏览器里也是拿它记目录的），
    所以谁递了 id 谁就有记忆，没递的照旧开在系统默认那一处，行为一个字不变。
    落在用户目录里那一格 ui-paths.json，记事本可看可删（和 ui-band.json 同一待遇）。 */
@@ -1803,7 +1762,7 @@ function refreshLists(){
 }
 /* 一个包摊平后的样子：id + 说明书 + 它是文件夹还是 zip + 文件列表（文件夹） */
 function packOne(dir, name, kind){
-  const up = require('./updater.cjs');
+  const up = require('./zip-read.cjs');
   if(kind === 'dir'){
     const f = path.join(dir, name, 'manifest.json');
     if(!fs.existsSync(f)) return null;
@@ -1888,7 +1847,7 @@ function packRaw(id, rel){
   if(!clean || clean.split('/').some(s => s === '..' || s === '.' || !s)) return null;
   const p = packScan().packs.find(x => x.id === String(id));
   if(!p) return null;
-  const up = require('./updater.cjs');
+  const up = require('./zip-read.cjs');
   if(p.kind === 'dir'){
     const dir = path.join(PACKS_DIR(), p.id);
     const f = path.join(dir, ...clean.split('/'));
@@ -1947,7 +1906,7 @@ ipcMain.handle('pack:set', (e, ids) => {
    进了门就摊开：能直接看见里面每个文件、想改哪份改哪份，「改代码」也直接指真文件。
    同名已经在那儿了就报错退回去，绝不动手盖掉他原有的包。 */
 function packManifestOf(buf){
-  const up = require('./updater.cjs');
+  const up = require('./zip-read.cjs');
   const items = up.zipIndex(buf);
   const it = items.find(x => x.name === 'manifest.json');
   if(!it) throw new Error('这个压缩包里没带说明书，不像一个插件');
@@ -1979,7 +1938,7 @@ function expandZipPack(dir, buf, id){
       if(!seg.length || seg.some(x => x === '..')) throw new Error('包里有脏路径，不敢落地：' + rel);
       const dest = path.join(to, ...seg);
       if(!dest.startsWith(to + path.sep)) throw new Error('包里有脏路径，不敢落地：' + rel);
-      const data = require('./updater.cjs').unzipEntry(buf, it);
+      const data = require('./zip-read.cjs').unzipEntry(buf, it);
       fs.mkdirSync(path.dirname(dest), { recursive:true });
       fs.writeFileSync(dest, data);
       count++;
@@ -2324,97 +2283,42 @@ ipcMain.handle('code:catRename', async (e, from, to) => {
     msg: hits.length ? ('改了 ' + hits.length + ' 个文件 · 共 ' + hits.reduce((x, y) => x + y.n, 0) + ' 处') : '代码里没有引用【' + a + '】的地方' };
 });
 
-/* ---------- 本地更新（第 16 条 · 甲案：更新包 = 一个 zip）----------
-   设置→程序→关于 里那几个按钮走这四条口子：看版本 → 挑包 → 看包 → 装包。
-   装这一步不在主进程里干：要挪的 页面\ 和 resources\app\ 正被程序自己读着，
-   所以 upd:start 只把 updater.cjs（跟 main.cjs 同一层，就在 resources\app\ 里）用 detach 起来，
-   自己退出去，让那个 exe 等关干净了再挪。
-   带运行时的那种包还要挪三个 exe —— 正在跑的这个就是要被挪的那个，
-   所以那种情况先把这个 exe 拷一份到临时目录，用拷贝去跑 updater.cjs。
-   数据\ 在那一头有硬检查：包里凡是带 数据 或 userdata 的路径，updater 直接判错停工。 */
-const UPDATER = path.join(__dirname, 'updater.cjs');
-const UPD_DIR = path.join(TREE, 'update');
-/* 页面产物的当前版本号：和开页面一个口径，从 pages\ 的文件名里取（取不到就是没装好）。
-   只有 Flow-Desk 这一张页了 —— 为写和声笔输入法练习的代码都拼在它里面，各自不再出独立页面，
-   页面上「关于」那一行的后两个号直接从内核要（window.WNW_KERNEL.version、window.RP_KERNEL.version）。 */
-const UPD_PAT = { fd:['', 'Flow_Desk_'] };
-function updVersions(){
+/* ---------- 关于：本机这一份是什么号、东西在哪儿（外44 四）----------
+   从前这一格挂在「本地更新」那四条口子上，号是为了跟包里的号比大小用的。
+   挑 zip 装更新那一路已经整条撤了 —— 主程序换版就是双击一颗新的 setup exe，
+   所以这儿只留「本机是什么」这一份读数，不再挑包、不再看包、不再装包。
+   备份那一列还在：覆盖升级把换下来的旧东西挪进 update\backups\<时间戳>\，
+   那一格里没有用户写的东西，列出来是让人知道旧版去哪儿了。 */
+const ABOUT_PAT = { fd:['', 'Flow_Desk_'] };
+function aboutVersions(){
   const out = {};
-  for(const k of Object.keys(UPD_PAT)){
-    const [sub, pre] = UPD_PAT[k];
+  for(const k of Object.keys(ABOUT_PAT)){
+    const [sub, pre] = ABOUT_PAT[k];
     const f = latestIn(path.join(PAGES_ROOT, sub, pre + '*.html'));
     out[k] = f ? path.basename(f).slice(pre.length, -'.html'.length) : '';
   }
   return out;
 }
-function updBackups(){
-  const dir = path.join(UPD_DIR, 'backups');
+function aboutBackups(){
+  const dir = path.join(TREE, 'update', 'backups');
   let list = [];
   try{ list = fs.readdirSync(dir).filter(n => !n.startsWith('.')).sort().reverse(); }catch(e){}
   return list.slice(0, 5);
 }
-function updRead(zip){
-  const up = require('./updater.cjs');
-  const opened = up.openZip(String(zip || ''));
-  return { up, marker: opened.marker, plan: up.audit(opened.items) };
-}
-ipcMain.handle('upd:info', () => {
-  return { ok:true, tree:TREE, pages:PAGES_ROOT, data:DATA_ROOT, upd:UPD_DIR,
-    versions:updVersions(), backups:updBackups(), updater:fs.existsSync(UPDATER),
-    running:runningSiblings() };
-});
-ipcMain.handle('upd:pick', async (e) => {
-  /* 乙-1：挑更新包记更新包的来处 —— 他自己那句话：「更新记住更新包文件夹」。
-     这一条是专用通道，没有 id 可拿，键就地定死一个。 */
-  const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
-    title:'挑更新包', defaultPath: uiPathStart('fd-update'), properties:['openFile'], filters:[{ name:'Flow-Desk 更新包', extensions:['zip'] }]
-  });
-  if(r.canceled || !r.filePaths.length) return { ok:false, cancel:true, msg:'没挑包' };
-  uiPathRemember('fd-update', r.filePaths[0]);
-  return { ok:true, zip:r.filePaths[0] };
-});
-ipcMain.handle('upd:plan', (e, zip) => {
+ipcMain.handle('about:info', () => {
+  /* 装着的那几家一家一行，号取的是运行时真正加载的那一份说明书 ——
+     发布那一趟（publish）已经把这一格换成打出去那一次的号，所以这儿显示的就是他手上这一家是哪一笔。
+     没说明书的那一格（off.json 那种）不列，不编一个号出来。 */
+  let 家 = [];
   try{
-    const { marker, plan } = updRead(zip);
-    const now = updVersions();
-    const cmp = k => cmpVer(verNum(String(marker.versions[k] || '')), verNum(String(now[k] || '')));
-    const diff = ['fd'].map(k => cmp(k)).reduce((a, b) => a || b, 0);
-    return { ok:true, zip:String(zip), marker, plan, now,
-      newer:diff > 0, same:diff === 0, behind:diff < 0,
-      busy:runningSiblings(),
-      parts:plan.runtime ? 'pages + 程序代码 + 运行时' : 'pages + 程序代码' };
-  }catch(e){ return { ok:false, msg:((e && e.message) || String(e)) }; }
+    家 = packScan().packs.filter(p => p.manifest).map(p => ({
+      id: p.id, name: p.manifest.name || p.id, version: String(p.manifest.version || '')
+    }));
+  }catch(e){}
+  return { ok:true, pages:PAGES_ROOT, data:DATA_ROOT,
+    versions:aboutVersions(), backups:aboutBackups(), packs:家 };
 });
-ipcMain.handle('upd:start', (e, zip) => {
-  const busy = runningSiblings();
-  if(busy.length) return { ok:false, msg:'先把 ' + busy.join('、') + ' 关掉，那些文件正被它们读着' };
-  let job;
-  try{
-    const { up, plan } = updRead(zip);
-    const stamp = up.stamp();
-    job = { zip:String(zip), tree:TREE, upd:UPD_DIR, stamp };
-    /* 带运行时的包要动 exe：这份脚本就不能从树里那个跑，先拷去临时目录 */
-    let exe = process.execPath, script = UPDATER;
-    if(plan.runtime){
-      const tmp = path.join(require('os').tmpdir(), 'FlowDesk-update-' + stamp);
-      fs.mkdirSync(tmp, { recursive:true });
-      exe = path.join(tmp, APP.label + '.exe');
-      script = path.join(tmp, 'updater.cjs');
-      fs.copyFileSync(process.execPath, exe);
-      fs.copyFileSync(UPDATER, script);
-      job.tmp = tmp;
-    }
-    const p = spawn(exe, [script, JSON.stringify(job)], {
-      env: Object.assign({}, process.env, { ELECTRON_RUN_AS_NODE:'1' }),
-      detached:true, stdio:'ignore'
-    });
-    p.unref();
-  }catch(err){ return { ok:false, msg:'装不起来：' + ((err && err.message) || err) }; }
-  logLine('更新', '本地更新开始 · 包 ' + path.basename(job.zip) + ' · 装完自动起新版');
-  /* 这句先回给页面，让关于页把话说完，再退出 */
-  setTimeout(() => { app.isQuitting = true; const w = live(); if(w) w.close(); app.quit(); }, 700);
-  return { ok:true, msg:'开始装，这一版这就退出，装完自己起来' };
-});
+
 ipcMain.on('win:closeAnswer', (e, action) => doClose(String(action)));
 function toFilters(accept){
   if(!accept) return [];
@@ -2644,7 +2548,6 @@ function wireKeys(w){
     if(!mod) return;
     if(k === 'r'){ winCtl(input.shift ? 'reloadForce' : 'reload'); e.preventDefault(); return; }
     if(k === 'q'){ winCtl('quit'); e.preventDefault(); return; }
-    if(k === 'h'){ winCtl('help'); e.preventDefault(); return; }
     if(k === '=' || k === '+'){ winCtl('zoomIn'); e.preventDefault(); return; }
     if(k === '-'){ winCtl('zoomOut'); e.preventDefault(); return; }
     if(k === '0'){ winCtl('zoomReset'); e.preventDefault(); return; }
@@ -2669,7 +2572,6 @@ function winCtl(act){
     w.webContents.setZoomFactor(a === 'zoomIn' ? Math.min(2, +(z + .1).toFixed(2))
       : a === 'zoomOut' ? Math.max(.5, +(z - .1).toFixed(2)) : 1);
   }
-  else if(a === 'help') w.webContents.send('fd:help');
   else if(a === 'state') return winState();
   tellWinState();
   return winState();
@@ -2683,7 +2585,7 @@ function buildMenu(){ Menu.setApplicationMenu(null); }
 
 /* 图标就认三张图：exe 旁边的 icons\ 优先（改起来不用进 resources），
    其次 resources\app\icons\（打包带出去的默认那张），都没有才现画一个纯色方块。
-   要求写在 FD 的帮助文档里：PNG / 正方形 / 256×256 起 / 文件名固定。 */
+   要求：PNG / 正方形 / 256×256 起 / 文件名固定。 */
 function iconFile(){
   const f = APP.icon + '.png';
   for(const dir of [path.join(path.dirname(process.execPath), 'icons'), path.join(__dirname, 'icons')]){

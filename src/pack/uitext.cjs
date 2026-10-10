@@ -241,7 +241,7 @@ const SH_CN = { 'sh-bank-ui':'词库界面', 'sh-banks':'词库', 'sh-code':'改
   'sh-load':'插件加载接线' };
 const FD_CN = { 'fd2-store.js':'存储', 'fd3-lib.js':'三份库文件（色卡 / 外观方案 / 图片库）',
   'fd3-shell.js':'主界面', 'fd4-builtin.js':'内置组件',
-  'fd5-load.js':'插件加载接线', 'fd6-boot.js':'启动', 'fd7-help.js':'帮助页', 'fd10-size.js':'卡片大小', 'fd11-cards.js':'色卡',
+  'fd5-load.js':'插件加载接线', 'fd6-boot.js':'启动', 'fd10-size.js':'卡片大小', 'fd11-cards.js':'色卡',
   'fd12-rime-colors.js':'小企鹅配色那一串色号', 'fd13-colour-v1.js':'内置配色与随包纹理',
   'fd8-tools.js':'中立工具', 'fd9-title.js':'标题栏' };
 const WNW_CN = { 'w0-skin.js':'为写的皮肤与骨架', 'w1-core.js':'基础', 'w2-theme.js':'配色', 'w3-shell.js':'主界面',
@@ -279,7 +279,7 @@ function pageOf(rel, fn, dyn, packs){
   if(fn && /^src\/_(fd|wnw)\//.test(f) && dyn[fn]) return { prog:dyn[fn][0], page:dyn[fn][1] };
   if(f === 'src/pack/main.cjs') return { prog:P_MAIN, page:'窗口菜单与托盘' };
   if(f === 'src/pack/preload.cjs') return { prog:P_MAIN, page:'关窗询问框' };
-  if(f === 'src/pack/updater.cjs') return { prog:P_MAIN, page:'更新窗口' };
+  if(f === 'src/pack/zip-read.cjs') return { prog:P_MAIN, page:'插件导入报错' };
   /* 定期备份那一颗（外30 戊组）：它嘴里那几句最后都摆在 设置 · 数据 那一块和 toast 上，界面上看得见 */
   if(f === 'src/pack/backup.cjs') return { prog:P_MAIN, page:'定期备份' };
   /* 这一份是「改代码 / 恢复出厂 / 完全删除」那几步在主进程里的落盘手：
@@ -511,8 +511,8 @@ function treeOf(from){
 const SKIP_REL = new Set();
 const SKIP_NAME = new Set(['uitext.cjs', 'cardsize.cjs', 'wnw-kernel.js', 'wnw-custom-kernel.js']);
 /* 只认 .js / .cjs，不跟着收 .mjs —— 这是量过的，不是漏的：
-   这六棵被扫的树里 .mjs 一共十份（src/_fd：build / fd-serve / grad-survey / look-check，
-   src/pack：build-app / build-update / mirror / publish，src/_wnw 与 src/_wcustom 各一颗 build-kernel），全是敲命令行跑的构建脚本，
+   这六棵被扫的树里 .mjs 一共九份（src/_fd：build / fd-serve / grad-survey / look-check，
+   src/pack：build-app / mirror / publish，src/_wnw 与 src/_wcustom 各一颗 build-kernel），全是敲命令行跑的构建脚本，
    嘴里念的是打包进度，界面上一个字都不显示；收进来就成了清单里的脏行（和 uitext.cjs 同一类）。
    src/tools/ 底下那些 .mjs 是自检台，压根不在这五棵树的射程里。
    哪天新增了往界面上说话的一份，给它在这一行加一个名或者在 pageOf 里加一页，别放开这个口子。 */
@@ -565,7 +565,7 @@ function groupsOf(occ){
    形状：
      Flow-Desk · 顶栏:
        添加插件: 加功能
-       帮助:
+       色卡:
    段首那一行是出处（哪个程序的哪一页），底下缩进两格一行一个地方：冒号左边是界面上
    原来那句话，冒号右边写你要的字。右边空着 = 不改。
    ----------

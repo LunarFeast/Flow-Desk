@@ -3,7 +3,7 @@
    程序里系统菜单栏和标题栏都被拿掉了（见 打包\main.cjs：FD 走 titleBarStyle:'hidden'、
    Menu.setApplicationMenu(null)），原先挂在菜单栏上的每一项都搬进这一个菜单，
    配色直接用首页那套 token，快捷键由主进程那边接着（Ctrl+R / F11 那一套）。
-   这一页开在没有 Flow-Desk.exe 那一层的地方时，窗口不归页面管，那三个就不摆，菜单里只剩重新载入 / 设置 / 帮助。
+   这一页开在没有 Flow-Desk.exe 那一层的地方时，窗口不归页面管，那三个就不摆，菜单里只剩重新载入 / 设置。
    ============================================================ */
 const Title = {
   st:{ maximized:false, fullscreen:false },
@@ -80,7 +80,6 @@ const Title = {
       i('退出程序', 'Ctrl Q', () => window.FD_APP.winCtl('quit'));
     }
     gap();
-    i('帮助文档', 'Ctrl H', () => this.run('help', () => Help.open()));
     return R;
   },
   toggle(){

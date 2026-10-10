@@ -34,15 +34,14 @@ const 生 = rd('src/_fd/build.mjs');
 /* ---------- 三 · 不许再挑「号最大的那一张」 ---------- */
 台.题('三 · 挑页那几处按什么认');
 const 主 = rd('src/pack/main.cjs'), 镜 = rd('src/pack/mirror.mjs'),
-      发 = rd('src/pack/publish.mjs'), 包 = rd('src/pack/build-update.mjs'), 服 = rd('src/_fd/fd-serve.mjs');
+      发 = rd('src/pack/publish.mjs'), 服 = rd('src/_fd/fd-serve.mjs');
 台.判('主进程挑入口页按文件时间认（号回跳之后「最大」会挑回旧页）',
   /mt - best\.mt \|\| cmpVer/.test(主) && /statSync\(path\.join\(dir, n\)\)\.mtimeMs/.test(主));
 台.判('开发服务器那一处同一条规矩', /mt - best\.mt \|\| cmpVer/.test(服));
 台.判('出厂镜像认当前号那一张页（不是 pages\\ 里最大的）', /页名\(\)/.test(镜));
-台.判('打更新包的认当前号那一张页', /const VERSIONS = \{ fd: 号\(\) \}/.test(包) && !/function verIn/.test(包));
 台.判('发布那一头也认当前号，并且页不在就停下', /const VER = \{ fd: 号\(\) \}/.test(发) && /没有当前这一支号的页/.test(发));
 台.判('四处都不留 pickLatest 挑页那一手（镜像那一颗留给别处用，但不再挑页）',
-  !/pickLatest\(PAGES/.test(包) && !/pickLatest\(PAGES/.test(发) && !/pickLatest\(SRC_PAGES, 'Flow_Desk_\*\.html'\);$/.test(镜.split('const 当前')[1] || ''));
+  !/pickLatest\(PAGES/.test(主) && !/pickLatest\(PAGES/.test(发) && !/pickLatest\(SRC_PAGES, 'Flow_Desk_\*\.html'\);$/.test(镜.split('const 当前')[1] || ''));
 
 /* ---------- 四 · 短哈希不参与比大小 ---------- */
 台.题('四 · 比大小的那几把尺');

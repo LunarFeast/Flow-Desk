@@ -345,6 +345,30 @@ static class Sfx
     static string DestOf(Dlg d){ return d.Box.Text.Trim().Trim('"'); }
 
     /* back 不是空 = 这一趟是覆盖升级，旧的就在那一格 */
+    /* ---------- 装过的那一棵记在哪一格（外44 五：双击新 exe 要自己找到安装文件夹）----------
+       用户目录里一个明文一行，装成一次就记一次；下一次双击新 exe，默认那一行摆的就是它。
+       照样能改：框是编辑框，旁边那颗「换个地方」也还在，想挪去别的盘就自己指。
+       记不上不算错 —— 顶多回到 exe 旁边那一棵 Flow-Desk 这个默认值。 */
+    static string MemoFile()
+    {
+        return Path.Combine(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Flow-Desk"), "install.txt");
+    }
+    static string Memo()
+    {
+        try{
+            string s = File.ReadAllText(MemoFile(), Encoding.UTF8).Trim();
+            return s.Length == 0 ? null : s;
+        }catch(Exception){ return null; }
+    }
+    static void MemoWrite(string dest)
+    {
+        try{
+            Directory.CreateDirectory(Path.GetDirectoryName(MemoFile()));
+            File.WriteAllText(MemoFile(), dest + Environment.NewLine, Encoding.UTF8);
+        }catch(Exception){}
+    }
+
     /* ---------- 动手那一条道：首装和覆盖升级走同一条 ----------
        认那一棵在不在 → 在就先把要覆盖的每一个文件问一遍能不能写（正开着的一概不动）→
        旧的挪进 update\backups\<这一趟> → 摊新的。码和话一起带回去，界面那头只管摆。 */
@@ -384,6 +408,7 @@ static class Sfx
             return j;
         }
         j.Code = 0; j.Files = r.Files; j.Bytes = r.Bytes;
+        MemoWrite(dest);
         j.Msg = (up ? "覆盖升级了 " : "摊好 ") + r.Files + " 个文件 · " + MB(r.Bytes) + " → " + dest +
             (up ? "\r\n旧的在 " + back : "");
         return j;
@@ -421,7 +446,12 @@ static class Sfx
             else if(a == "--no-run") run = false;
             else if(a == "--quiet") quiet = true;
         }
-        if(string.IsNullOrEmpty(dest)) dest = Path.Combine(Path.GetDirectoryName(self), "Flow-Desk");
+        if(string.IsNullOrEmpty(dest))
+        {
+            /* 命令行没指地方：先用上一次装过记下的那一棵，没有才回到 exe 旁边那棵 Flow-Desk */
+            string memo = Memo();
+            dest = string.IsNullOrEmpty(memo) ? Path.Combine(Path.GetDirectoryName(self), "Flow-Desk") : memo;
+        }
         dest = Path.GetFullPath(dest);
 
         Payload pl = Open(self);
