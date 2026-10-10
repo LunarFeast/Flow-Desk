@@ -20,6 +20,7 @@ const ROOTS = loadRoots();
    Flow-Desk\
      pages\   出厂的 html 产物、帮助原件、图标资源 —— 软件更新就是换掉这一层（连同运行时和 exe）
      data\    你写的书（<书名>\history\、assets\）、你自己改过的功能模块和配方 plugins\、
+              导入时留的原版 plugins-factory\、
               生成记录 gen-log\、组件自带的词库 <包名>-bank\、help.md 的工作副本、
               userdata-list.md（设置·数据 那个「用户数据详单」读的那份）、
               还有 userdata-fd（Electron 那份用户目录：便签日程配色、写作稿子、练习记录、缓存）、logs\
@@ -39,11 +40,16 @@ const PAGES_ROOT = path.join(TREE, 'pages');
 const DATA_ROOT = path.join(TREE, 'data');
 /* 插件那一格读写的尺（三道闸和恢复出厂都在 comp-files.cjs 里）：
    活的那一层 = data\plugins\（运行时一家家 import 的就是这儿），
-   出厂原文 = 自带的 resources\app\data\plugins\（拷回来才是「恢复出厂」，所以是真复制不是链接）。
-   这一句得排在 prepareTrees 前面 —— 开机那趟摆树要用它铺组件层，const 没初始化就是 TDZ 崩。 */
+   原版那一格 = data\plugins-factory\（导入那一下顺手真复制一份，「恢复出厂」从这儿拷回来）。
+   外43 改的这一处：原版从前住在自带的 resources\app\data\plugins\，也就是插件代码跟着程序发一份 ——
+   插件跟主程序分开各自开发、各自发布，程序这一层一个插件的字节都不该带；
+   而且那一层每次更新包都被整个换掉，用户导入的原版放进去等于交给下一趟更新撤走。
+   挪进数据层之后：更新不碰它（更新包认死了一条 data\ 不写），它跟着这棵树一起搬。
+   这一句得排在 prepareTrees 前面 —— const 没初始化就是 TDZ 崩给他在托盘上看。 */
+const ORIG_ROOT = path.join(DATA_ROOT, 'plugins-factory');
 const COMP = require('./comp-files.cjs')({
   live:() => path.join(DATA_ROOT, 'plugins'),
-  factory:() => path.join(DATA_BUNDLED, 'plugins')
+  factory:() => ORIG_ROOT
 });
 /* 只有一个程序，所以窗口、托盘、图标、入口页都只有一份定义。
    关窗口是先问「最小化还是退出」，不是直接退。
@@ -95,7 +101,7 @@ const LAYER_REN = [['页面', 'pages'], ['数据', 'data'], ['更新', 'update']
    口径改成「结尾是 -bank 就算」（哪个包自带的都命中，以后新添的词库不用来改这里）。
    写成函数、不写成 const —— prepareTrees 在模块顶上就要跑，那会儿 const 还没初始化（TDZ 直接崩给他在托盘上看）。 */
 function dataDirName(n){
-  return ['plugins', 'gen-log', 'logs', '日志'].indexOf(n) >= 0 || /-bank$/.test(String(n || ''));
+  return ['plugins', 'plugins-factory', 'gen-log', 'logs', '日志'].indexOf(n) >= 0 || /-bank$/.test(String(n || ''));
 }
 function isBookDir(dir){
   for(const mark of ['history', '历史', 'assets']){
@@ -110,9 +116,10 @@ const MIGRATE = prepareTrees(TREE);
    页面上点那一颗的时候不删：浏览器存储那一格（用户档里 IndexedDB / Local Storage 那几棵）被内核自己占着，
    当场删不干净，删一半比不删更糟。所以那一步只留一张字条，真删排在下面这一趟 —— 任何数据文件落地之前、
    内核还没碰存储之前，整格清一遍。清完就是刚装好的样子。
-   留三样：插件那一格（代码与名单，那是程序不是数据）、日志、搬家那本账。 */
+   留四格：插件那一格（代码与名单，那是程序不是数据）、原版插件那一格（导入时留的底，跟着代码走）、
+   日志、搬家那本账。 */
 const WIPE_FILE = () => path.join(DATA_ROOT, 'wipe-user.json');
-const WIPE_KEEP = ['plugins', 'logs', 'relocate.txt'];
+const WIPE_KEEP = ['plugins', 'plugins-factory', 'logs', 'relocate.txt'];
 function userWipe(){
   const out = { log:[], deleted:[], failed:[] };
   let 字条 = null;
@@ -311,14 +318,15 @@ function prepareTrees(tree){
   syncHelp(data, pages, log);
   /* 两份清单（界面文字 / 卡片大小）第一次开机也从自带那一层落到 data\，落地之后这一份归用户。 */
   syncLists(data, log);
-  /* 插件那一层：代码运行时从 data\plugins\ 一家家加载，不在产物里拼着。
-     整个文件夹拷到新机器上时这一层可能还没落地（数据层是用户自己长出来的）——
-     这时候把程序自带的那一份原样铺过去（已有的一格都不动），第一次打开就有功能。 */
+  /* 插件不再跟着程序发：外43 撤掉了「开机把自带那一层铺成插件层」那一步 ——
+     新树第一次开机就是没有插件，那一家一家归用户自己装（顶栏 ＋ 里导入，或把包丢进 data\plugins\）。
+     老树留一次搬家：原版那一格从前住在自带那一层，第一次开机把它取到数据层的新格子里，
+     「恢复出厂」才不至于说撤个插件就把用户的底一起撤没了。目标已经有这一家的一个字不动。 */
   try{
-    const s = COMP.seedMissing();
-    if(s.ok && s.laid) log.push('插件从自带那一层铺过来 ' + s.ids.length + ' 家（' + s.ids.join('、') + '）· ' + s.laid + ' 份文件');
-    else if(!s.ok) log.push(s.msg);
-  }catch(e){ log.push('插件那一层没铺成：' + (e && e.code || e)); }
+    const b = COMP.adoptOldFactory(path.join(DATA_BUNDLED, 'plugins'));
+    if(b.moved.length) log.push('原版插件从自带那一层取过来 ' + b.moved.length + ' 家（' + b.moved.join('、') + '）· ' + b.files + ' 份');
+    if(b.msg) log.push(b.msg);
+  }catch(e){ log.push('原版那一格没搬成：' + (e && e.code || e)); }
   save();
   return { log, blocked: blocked.join('；') };
 }
@@ -924,14 +932,14 @@ function landAsset(id, key){
   let buf = a ? packRaw(a.id, a.rel) : null;
   let name = a ? path.basename(a.rel) : '';
   if(!buf){
-    /* 出厂兜底：这棵树上还没有插件那一格时，取出厂那一格（resources\app\data\plugins\<id>\）里的同一份。
-       外20 改的口径：随行文件（监听脚本、桥插件）的原件在包里，app 层不收第二份，
-       所以兜底也只能顺着出厂那一格走 —— 那儿本来就是「恢复出厂」取原文的地方，一份东西两个用途。
+    /* 兜底：活的那一格读不到（被「改代码」删了、或者只留了底），取原版那一格里同一份。
+       外20 定随行文件的口径没变：原件在包里，app 层不收第二份，兜底顺着「恢复出厂」取原文的地方走，
+       一份东西两个用途 —— 变的只是那一格从程序里搬进了数据里（外43，见上面 COMP 那一段）。
        以前这三行点的是 resources\app\smtc-watcher.ps1 和 resources\app\plugin\mb_FlowDesk.dll
        （出包时另落的两份副本），而 vol-watcher.ps1 那一支点的是个从来没存在过的文件名：
        真到了没有包的时候，音量那一条一定落空，一句错都不报。
        名字只取 basename —— manifest 里写什么也不许顺着往上爬。 */
-    const fac = path.join(DATA_BUNDLED, 'plugins', id);
+    const fac = path.join(ORIG_ROOT, id);
     try{
       const fm = JSON.parse(fs.readFileSync(path.join(fac, 'manifest.json'), 'utf8'));
       const rel = fm && fm.assets ? path.basename(String(fm.assets[key] || '')) : '';
@@ -1996,10 +2004,22 @@ function packAdopt(){
     let buf = null;
     try{ buf = fs.readFileSync(path.join(dir, n)); }catch(e){ continue; }
     const r = expandZipPack(dir, buf, id);
-    if(r.ok){ 摊了.push(id); logLine('插件', '开机摊开 ' + n + ' → ' + id + '\\ · ' + r.files + ' 份'); }
+    if(r.ok){ 摊了.push(id); keepOriginal(id);
+      logLine('插件', '开机摊开 ' + n + ' → ' + id + '\\ · ' + r.files + ' 份'); }
     else logLine('插件', '那份 zip 没摊开（' + n + '）：' + r.msg);
   }
   return 摊了;
+}
+/* 导入那一下顺手留一份原版：把活的那一格原样复制进 data\plugins-factory\<id>\。
+   「恢复出厂」和随行文件的兜底取的都是这一份，所以底必须是导入时那一份原样 ——
+   用户后来在「改代码」里改成什么样，都不影响这一份底。
+   留不成不拦导入：装是装上了，只是这一家没有底可恢复，日志里记一句。 */
+function keepOriginal(id){
+  let r = null;
+  try{ r = COMP.keepFactory(id); }catch(e){ r = { ok:false, msg:'留底这一步抛了：' + (e && e.code || e) }; }
+  logLine('插件', r && r.ok ? '原版留进 plugins-factory\\' + id + '\\ · ' + r.files + ' 份'
+    : '这一家没留出原版（' + id + '）：' + ((r && r.msg) || '不知道哪儿卡住了'));
+  return r || { ok:false };
 }
 ipcMain.handle('pack:import', (e, payload) => {
   const dir = PACKS_DIR();
@@ -2022,6 +2042,7 @@ ipcMain.handle('pack:import', (e, payload) => {
         return bad('这里已经有一份「' + id + '」了 · 要换先把它挪走');
       const r = expandZipPack(dir, buf, id);
       if(!r.ok) return bad(r.msg);
+      keepOriginal(id);                                            /* 导入即留一份原版 */
       refreshLists();                                              /* #277：新包里的字和卡片大小立刻进清单 */
       return { ok:true, id, where:id + '/', files:r.files, name:r.name };
     }
@@ -2043,6 +2064,7 @@ ipcMain.handle('pack:import', (e, payload) => {
         fs.mkdirSync(path.dirname(dest), { recursive:true });
         fs.copyFileSync(path.join(src, ...rel.split('/')), dest);
       }
+      keepOriginal(id);                                            /* 导入即留一份原版 */
       refreshLists();                                              /* #277：新包里的字和卡片大小立刻进清单 */
       return { ok:true, id, where:id + '/', files:list.length, name:m.name || id };
     }

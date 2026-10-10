@@ -438,7 +438,7 @@ window.FD_APP = {
     catch(e){ return { ok:false, msg:'清理没排下去：' + ((e && e.message) || e) }; } },
   /* ---------- 插件自己那一格里的文件：「改代码」直接读写它（存了就是新的） ----------
      rel 是这一格里的相对路径（默认 main.js）；包名和路径由主进程那把尺查过才落地，
-     跑出 data\plugins\ 的一律写不进去。恢复出厂取的是自带那一层同名的文件。 */
+     跑出 data\plugins\ 的一律写不进去。恢复出厂取的是 data\plugins-factory\ 里同名的那一份（导入那一下留的原版）。 */
   async compRead(id, rel){ try{ return await ipcRenderer.invoke('comp:read', String(id || ''), rel === undefined ? null : String(rel)); }
     catch(e){ return { ok:false, msg:'插件文件读不到：' + ((e && e.message) || e) }; } },
   /* 这一格里有哪几份文本文件（「改代码」顶上那个挑文件的下拉吃这个） */
@@ -451,7 +451,7 @@ window.FD_APP = {
   async compRestore(id, rel){ try{ return await ipcRenderer.invoke('comp:restore', String(id || ''), rel === undefined ? null : String(rel)); }
     catch(e){ return { ok:false, msg:'恢复出厂没接上：' + ((e && e.message) || e) }; } },
   async compFactory(id){ try{ return await ipcRenderer.invoke('comp:factory', String(id || '')); }
-    catch(e){ return { ok:false, files:[], has:false, msg:'出厂那一层问不到：' + ((e && e.message) || e) }; } },
+    catch(e){ return { ok:false, files:[], has:false, msg:'原版那一格问不到：' + ((e && e.message) || e) }; } },
   /* 生成页面进度：主进程每开一步、构建脚本每出一行都推一句过来（页面上那条进度条吃这个） */
   onRebuildStep(fn){
     const wrap = (e, s) => { try{ fn(s); }catch(err){} };

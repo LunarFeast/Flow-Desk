@@ -16,10 +16,11 @@
    这一棵树里进发布物的、和不进的，口径写死在下面几段：
      进：运行时（跟 electron dist 同名的那批 + 一个 exe + locales）、resources\app 那一层、
          pages\ 只留 Flow-Desk 版本号最大的那一份和非产物文件、
-         src\（重新生成页面要用，node_modules 不带）、data\plugins\ 里出厂的那些包
-     不进：data\ 里除了插件的一切（用户写的书、词库副本、userdata-*、日志 —— 私密，也不该跟着版本走）、
+         src\（重新生成页面要用，node_modules 不带）
+     不进：插件一家都不带（外43：插件跟主程序分开各自开发、各自发布，零卖的包走 dist\plugins\*.zip，
+           原版那一格 data\plugins-factory\ 是用户导入时自己留的底）、
+           data\ 里其余的一切（用户写的书、词库副本、userdata-*、日志 —— 私密，也不该跟着版本走）、
            update\（那是一台机器自己的更新账）、根上 icons\（给用户换的，自带的在 resources\app\icons 里能长回来）、
-           plugins 里名单（off.json）和出厂那一层没有的散件、
            老版本的 html（用户那棵树里想留几份留几份，发布物只带当前这一版）
    ============================================================ */
 import fs from 'node:fs';
@@ -126,17 +127,14 @@ addLayer('resources/app/', APP);
 addLayer('pages/', PAGES, rel => superseded(rel));
 /* 四、源码：重新生成页面要读的（node_modules 一个字节都不带 —— 生成页面只用 node 自带模块） */
 addLayer('src/', path.join(TREE, 'src'), rel => inNodeModules(rel) || /(^|\/)\.[^/]/.test(rel));
-/* 五、插件：只放进厂的那一格。名单、包外散配方、覆盖副本都不带 ——
-   没有 off.json 意味着新树第一次打开一家都没卸，这就是出厂样子。 */
+/* 五、插件：外43 起一棵都不进这一棵树。插件跟主程序分开各自开发、各自发布 ——
+   首装那一个 exe 里不许有一个插件的字节，新用户要哪家自己去那一家的仓拿。
+   下面那一段「货架」照旧：零卖的 <id>.zip 是发给用户的运输件，不是树里的一份。
+   原版那一格（data\plugins-factory\）也不带：它是用户导入那一下自己留的底。 */
 /* 出货之前再过一遍越界这道门（和两个构建同一把尺）：货架上发的源码是要给别人看的，
    组件和主程序之间只能有接口调用，不能有内部耦合。 */
 if(!assertClean(PACKS_DIR, '发插件')){ console.error('插件越界没清完，publish 停下。'); process.exit(1); }
 const packs = packScan(PACKS_DIR).filter(p => !SKIP.has(p.id));
-for(const p of packs){
-  if(p.error){ console.log('  ! 包 ' + p.id + ' 说明书读不成：' + p.error); continue; }
-  if(p.kind === 'zip'){ files.set('data/plugins/' + p.id + '.zip', p.path); continue; }
-  for(const [name, buf] of p.files) made.set('data/plugins/' + p.id + '/' + name, buf);
-}
 
 /* ---------- 货架：一个包压成一包 zip，清单里写清它是什么来路 ---------- */
 function packZip(p){
@@ -186,7 +184,7 @@ const label = 'Flow-Desk 便携版 ' + VER.fd;
 made.set('flow-desk-install.json', Buffer.from(JSON.stringify({
   kind: 'flow-desk-tree', label: label, made: new Date().toISOString(),
   versions: VER, packs: shelf.map(p => p.id),
-  note: '这一棵树是首装摊出来的：整文件夹删掉就算卸载，不写注册表。升级走 设置 → 程序 → 本地更新。'
+  note: '这一棵树是首装摊出来的：整文件夹删掉就算卸载，不写注册表。一个插件都不带（插件分开各自发布），升级走 设置 → 程序 → 本地更新。'
 }, null, 2) + '\n', 'utf8'));
 made.set('安装说明.txt', Buffer.from([
   'Flow-Desk · 便携版（首装）',
@@ -197,18 +195,20 @@ made.set('安装说明.txt', Buffer.from([
   '',
   '  pages\\    程序读的那一张页面（换新版本见下面「更新」）',
   '  data\\     你自己长出来的东西，更新永远不会碰这一层：',
-  '            <书名>\\（正文和它的历史快照）、plugins\\（改过的功能模块和出厂的插件）、',
+  '            <书名>\\（正文和它的历史快照）、plugins\\（你装的插件和改过的代码）、',
+  '            plugins-factory\\（导入那一下自动留的原版，「恢复出厂」取的就是这一格）、',
   '            gen-log\\（生成记录）、<包名>-bank\\（组件自带的词库）、help.md（帮助的工作副本）、logs\\（运行日志）',
   '  update\\   更新那一摊自己待着：packages\\（更新包）、backups\\（每趟装之前的旧层）、result.txt（成没成的账）',
   '  src\\      Flow-Desk 自己的源码：只有改了它才需要重新生成页面（功能模块不在这里，装卸和改功能代码都不用这一趟）',
   '',
-  '功能都是一个一个可选的组件，不要就能卸掉，卸掉还能装回来：',
-  '  顶栏的 ＋（添加插件）里，每一个都有「装上 / 卸掉 / info」。',
+  '这一份发布物里一个插件都没有 —— 插件跟主程序分开各自开发、各自发布，要哪家自己去那一家的仓库拿。',
+  '装一个插件（拿到的是 <id>.zip 或解开的文件夹）：',
+  '  顶栏的 ＋（添加插件）→「导入插件」，挑那个压缩包或那个带说明书的文件夹；',
+  '  或者直接把那一格丢进 data\\plugins\\，重启一次软件就认（压缩包会当场摊开）。',
+  '  导入的同一趟会往 data\\plugins-factory\\ 留一份原版，所以「改代码」改坏了有点「恢复出厂」拷回来。',
+  '装卸都在这同一屏：每一家有「装上 / 卸掉 / info」。',
   '  卸掉 = 下一次开机不再加载它那一份代码（改名单 + 刷新这一页），不是藏起来；勾选「同步清除数据」才会连它存的词库和记录一起清。',
-  '  别人给你的插件（<id>.zip 或解开的文件夹）在同一个按钮「导入插件」里挑，导入即装上。',
-  '  出厂带的那些包就住在 data\\plugins\\，随时装得回来。',
-  '  每一个组件跑的就是 data\\plugins\\<它>\\main.js，改代码对话框里存了就用新的；',
-  '  出厂原文另存一份在 resources\\app\\data\\plugins\\，改坏了点「恢复出厂」从那儿拷回来。',
+  '  每一个组件跑的就是 data\\plugins\\<它>\\main.js，改代码对话框里存了就用新的。',
   '',
   '更新：设置 → 程序 → 本地更新 里挑一个 FlowDesk_update_*.zip，它只换 pages\\ 和 resources\\app\\，',
   '旧的那份挪进 update\\backups\\<时间戳>\\，装完自动开新版；data\\ 一个字节都不动。',
@@ -223,6 +223,18 @@ made.set('安装说明.txt', Buffer.from([
   '卸载：把整个 Flow-Desk 文件夹删掉就行，它不写注册表。',
   ''
 ].join('\r\n'), 'utf8'));
+
+/* ---------- 一道硬闸：首装那棵树里不许出现数据层的任何一格 ----------
+   插件（外43 剥离）和用户写的东西都住在 data\ 底下，两条都不该跟着发布物走。
+   谁哪天再往 files / made 里塞一份 data\，当场停下，不用等用户装完才发现。 */
+{
+  const dirty = [...files.keys(), ...made.keys()].filter(k => k === 'data' || k.startsWith('data/'));
+  if(dirty.length){
+    console.error('首装那棵树里出现了数据层的格子（插件和用户数据都不该进包）：\n  ' + dirty.slice(0, 12).join('\n  '));
+    process.exit(1);
+  }
+  console.log('  data\\ 那道闸过了：' + (files.size + made.size) + ' 份路径里没有一个落在 data\\ 底下');
+}
 
 /* ---------- 体积先看一眼：整包里最肥的是那个 200MB 的 exe，不划算就别真打 ---------- */
 let n = 0, bytes = 0;
@@ -347,4 +359,4 @@ fs.writeFileSync(path.join(OUT_DIR, 'index.json'), JSON.stringify(index, null, 2
 console.log('WROTE ' + out);
 console.log('  壳 ' + (stubBuf.length / 1024).toFixed(0) + 'KB + 树 ' + (copied / 1048576).toFixed(1) + 'MB = ' + index.setup.size);
 console.log('  货架 ' + shelf.length + ' 个包在 dist\\plugins\\ · 清单 dist\\index.json');
-console.log('  data\\ 的用户内容一个字节都没进包（除 ' + path.join('data', 'plugins') + ' 那一格）');
+console.log('  data\\ 那一层一个字节都没进包（插件也不在里头 —— 外43 起发布物不带插件，零卖的包在 dist\\plugins\\）');

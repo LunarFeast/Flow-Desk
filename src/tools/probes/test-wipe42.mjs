@@ -53,6 +53,7 @@ const 清 = 切(main, 'userWipe');
 const KEEP = (main.match(/const WIPE_KEEP = \[([^\]]+)\]/) || [])[1] || '';
 台.数('留着的那几样', KEEP.replace(/\s+/g, ''));
 台.判('留插件那一格（代码与名单不是用户数据）', KEEP.includes("'plugins'"));
+台.判('留原版那一格（导入那一下留的底，跟代码走不是跟数据走）', KEEP.includes("'plugins-factory'"));
 台.判('留日志', KEEP.includes("'logs'"));
 台.判('留搬家那本账', KEEP.includes("'relocate.txt'"));
 const 调用行 = main.split('\n').findIndex(l => /^const WIPE = userWipe\(\);/.test(l));
@@ -118,4 +119,33 @@ const 三份 = (切(main, 'syncLists').match(/\[\s*'ui-text\.yaml'[^\]]*\]/) || 
 台.判('帮助那份走的是同一趟摆树里那颗（syncHelp 在 prepareTrees 被叫到）', /syncHelp\(data,/.test(main));
 台.判('帮助那份的镜像取件处是 pages\\help.md（不再从 data\\ 取）', /SRC_PAGES,\s*'help\.md'/.test(底本段) && !/SRC_DATA,\s*'help\.md'/.test(镜));
 台.判('出厂层里确实有那一份（铺得出来，不是空话）', fs.existsSync(ROOT + 'resources/app/data/help.md'));
+
+/* ---------- 五 · 外43：插件跟主程序分开各自发布，程序这一层一个插件的字节都不带 ----------
+   从前有三条路把插件塞进发布物：publish 把 data\plugins\ 打进首装树、mirror 往 resources\app\data\plugins\
+   铺一份、开机看见没有插件格就把那一份铺出来。三条全撤了。
+   替代的形状：用户导入那一下顺手往 data\plugins-factory\ 留一份原版，「恢复出厂」和随行文件的兜底取这一格。 */
+台.题('五 · 插件从发布物和程序层里剥干净了没有');
+const pub = rd('src/pack/publish.mjs'), comp = rd('src/pack/comp-files.cjs'), serve = rd('src/_fd/fd-serve.mjs');
+台.判('首装那棵树不再往包里塞插件（一处 ' + "data/plugins/" + ' 的落地都没有）',
+  !/files\.set\('data\/plugins\//.test(pub) && !/made\.set\('data\/plugins\//.test(pub));
+台.判('出厂镜像不再铺插件那一格（mode:\'packs\' 和那条 job 都没了）',
+  !/mode:'packs'/.test(镜) && !/'data',\s*'plugins'/.test(镜));
+台.判('镜像那把尺也不再认包（铺不了插件就不用来回扫包）', !/packScan/.test(镜));
+台.判('开机不再把自带那一层铺成插件（seedMissing 主进程和那颗定义都没了）',
+  !/seedMissing/.test(main) && !/seedMissing/.test(comp));
+台.判('铺插件那一步换成了给老树搬家（从旧位置取过来，目标有了就不动）',
+  /COMP\.adoptOldFactory\(/.test(main) && /adoptOldFactory\(from\)/.test(comp));
+const 留底次数 = (main.match(/keepOriginal\(id\);/g) || []).length;
+台.数('导入留底挂上了几处（开机摊 zip + 导入挑文件 + 导入挑文件夹）', 留底次数);
+台.判('那三处都挂着（少一处就是有一条道装完没底）', 留底次数 === 3 && /function keepOriginal\(id\)/.test(main));
+台.判('留底走的是 comp-files 那颗 keepFactory，先抹旧再整格复制', /keepFactory\(id\)/.test(comp) && /rmSync\(to, \{ recursive:true, force:true \}\)/.test(comp));
+台.判('原版那一格在数据层（跟着用户的树走，更新包不碰 data\\）',
+  /const ORIG_ROOT = path\.join\(DATA_ROOT, 'plugins-factory'\)/.test(main) && /factory:\(\) => ORIG_ROOT/.test(main));
+台.判('开发服务器指的是同一格（两条通道同一个口径）', /'plugins-factory'/.test(serve) && !/resources', 'app', 'data', 'plugins'/.test(serve));
+const 落地 = 切(main, 'landAsset');
+台.判('随行文件的兜底也跟着换到那一格（不再从 resources\\app 取）',
+  /path\.join\(ORIG_ROOT, id\)/.test(落地) && !/DATA_BUNDLED/.test(落地));
+台.判('这一格不算书名（那道名字闸认它）', /'plugins', 'plugins-factory'/.test(main));
+台.判('首装那份说明改口了（不再说"出厂带的那些包就住在 data\\plugins"）',
+  !/出厂带的那些包/.test(pub) && /这一份发布物里一个插件都没有/.test(pub));
 台.收尾();

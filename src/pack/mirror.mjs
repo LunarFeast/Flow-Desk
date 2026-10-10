@@ -18,8 +18,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-/* 认插件那把尺和生成页面用的是同一把（_build/packs.mjs）：这边要知道哪个包自带词库底本 */
-import { scan as packScan } from '../_build/packs.mjs';
+/* 认插件那把尺和生成页面用的是同一把（_build/packs.mjs）—— 外43 起这一层不再铺插件，
+   那把尺只有 publish 打货架的时候用。 */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 /* 产物就在 Flow-Desk\ 根上（src\pack 往上两级）：运行时、exe、pages、data、src 同级 */
@@ -144,24 +144,12 @@ function jobs(){
     out.push({ k:'file', real:true, note:'程序壳 · ' + (/\.ps1$/.test(f) ? 'app 层自己的脚本' : '主进程那份代码'),
       from:path.join(HERE, f), to:path.join(RES, f) });
   }
-  /* 插件那一整格：data\plugins\ 里每一家原样复制一份进 resources\app\data\plugins\。
-     「恢复出厂」这个按钮取的就是这一层，程序第一次开机发现这棵树里还没有 data\plugins\ 时铺的也是它，
-     监听的随行文件（watcher / 桥插件）在包里没有对应原件时 ALSO 从这一层取（main.cjs 的 landAsset）。
-     off.json 不带 —— 卸没卸是这一棵用户自己的事，出厂那一层只管每一家的文件长什么样。 */
-  out.push({ k:'tree', mode:'packs', note:'出厂插件那一格 · 恢复出厂 + 随行文件兜底都取这里',
-    from:path.join(SRC_DATA, 'plugins'), to:path.join(RES, 'data', 'plugins') });
-  /* 词库跟着功能走：底本在包里（说明书 bank.file 那一个），数据层那份是用户改过才有的副本。
-     用户那份在 —— 照老规矩带他的，一个字不改；不在 —— 把包里那份落成 <which>-bank/data.txt，
-     新机器上第一次打开就有词库读。 */
-  for(const p of packScan(path.join(SRC_DATA, 'plugins'))){
-    const m = p.manifest;
-    if(!m || !m.bank || !m.bank.which || !m.bank.user) continue;
-    const rel = String(m.bank.user).split('/');
-    if(fs.existsSync(path.join(SRC_DATA, ...rel))) continue;
-    const buf = p.files && p.files.get(m.bank.file || 'bank.txt');
-    if(!buf){ console.log('  ! 包 ' + p.id + ' 说要带词库，包里却没找到 ' + (m.bank.file || 'bank.txt')); continue; }
-    out.push({ k:'buf', buf, note:'词库底本 · 从 ' + p.id + ' 的包里落成', to:path.join(RES, 'data', ...rel) });
-  }
+  /* 插件那一整格从前铺在这里（resources\app\data\plugins\）：「恢复出厂」和随行文件的兜底都取这一层。
+     外43 撤了 —— 插件跟主程序分开各自开发、各自发布，程序这一层不带一个插件的字节；
+     而且这一层每次更新包都被整个换掉，用户的原版放进去等于交给下一趟更新撤走。
+     现在原版住在 data\plugins-factory\，导入那一下由 main.cjs 的 keepOriginal() 留，恢复出厂取那一格。
+     词库底本那一段跟着一起撤：它的来源本来就是这里的插件包，包里没插件了也就没有底本可落
+     （撤之前那一趟也是空转 —— 七家说明书里没一家写 bank）。 */
   /* 图标这一层分两处看：树根 icons\ 是给用户换的（build-app 那边 keepExisting，他换过的图不许被出包吃掉），
      镜像这一层是"自带的默认"，就该和 src\pack\icons\ 一模一样 —— 所以先抹后铺（tree），不保留。
      外20 之前这里是"已有的不动"，结果源码 Oct 2 撤掉的名字在镜像里活到了今天：
@@ -189,20 +177,11 @@ function jobs(){
      packs —— 插件那一格：顶层只认目录（off.json 是这台机器卸没卸过、<id>.zip 是压好的成品、
               <id>.code.js 是「改代码」的本地覆盖副本，三样都不属于"出厂原文"），往里走跳过点的开头的；
      flat  —— 图标那一格：整个目录原样比，往里那一层子目录也要进去。 */
-function treePairs(from, to, mode){
+function treePairs(from, to){
   let names = [];
   try{ names = fs.readdirSync(from); }catch(e){ return null; }
   const src = new Map();
-  if(mode === 'packs'){
-    for(const e of fs.readdirSync(from, { withFileTypes:true })){
-      if(!e.isDirectory() || e.name.startsWith('.') || e.name === 'off.json') continue;
-      if(!/^[A-Za-z0-9._-]+$/.test(e.name)) continue;        /* 和 comp-files.cjs 那把尺同一个包名口径 */
-      for(const rel of walk(path.join(from, e.name)))
-        if(!rel.split('/').some(s => s.startsWith('.'))) src.set(e.name + '/' + rel, path.join(from, e.name, ...rel.split('/')));
-    }
-  } else {
-    for(const rel of walk(from)) if(!rel.split('/').some(s => s.startsWith('.'))) src.set(rel, path.join(from, ...rel.split('/')));
-  }
+  for(const rel of walk(from)) if(!rel.split('/').some(s => s.startsWith('.'))) src.set(rel, path.join(from, ...rel.split('/')));
   const dst = new Map();
   try{ for(const rel of walk(to)) dst.set(rel, path.join(to, ...rel.split('/'))); }catch(e){}
   return { src, dst };
@@ -213,7 +192,7 @@ function plan(){
   const stale = [], missing = [], extra = [], same = [];
   for(const j of jobs()){
     if(j.k === 'tree'){
-      const p = treePairs(j.from, j.to, j.mode);
+      const p = treePairs(j.from, j.to);
       if(!p){ missing.push(j.note + ' · 源那一格没有：' + j.from); continue; }
       for(const [rel, f] of p.src){
         const d = p.dst.get(rel);
@@ -265,15 +244,8 @@ function apply(){
     } else if(j.k === 'tree'){
       if(!fs.existsSync(j.from)){ log.push('  ! ' + j.from + ' 里没有这一格，跳过：' + j.note); continue; }
       fs.rmSync(j.to, { recursive:true, force:true });
-      let ids = 0, files = 0;
-      if(j.mode === 'packs'){
-        for(const e of fs.readdirSync(j.from, { withFileTypes:true })){
-          if(!e.isDirectory() || e.name.startsWith('.') || e.name === 'off.json') continue;
-          if(!/^[A-Za-z0-9._-]+$/.test(e.name)) continue;      /* 和 comp-files.cjs 那把尺同一个包名口径 */
-          files += copyPackTree(path.join(j.from, e.name), path.join(j.to, e.name)); ids++;
-        }
-      } else files += copyPackTree(j.from, j.to);
-      log.push('  ' + j.note + ' · 铺了 ' + files + ' 个文件' + (ids ? ' · ' + ids + ' 家' : ''));
+      const files = copyPackTree(j.from, j.to);
+      log.push('  ' + j.note + ' · 铺了 ' + files + ' 个文件');
     }
   }
   checkShellRequires(RES);

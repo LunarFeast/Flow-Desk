@@ -71,7 +71,8 @@ head('二、同一个名字出现多处 · 只报内容不一样的（一样的�
      · resources\app\ 底下那一整层 —— 出厂镜像和源那份重名是设计如此，落差在第一节的 plan() 里报，
        比它详细得多（哪一格、哪一份、为什么该在这儿）；
      · 插件内部的标准名字（main.js / icon.svg / manifest.json / bank.txt / recipe.json）——
-       每家都叫这个名，六家凑一起就成了"六个内容一种名字"，那也是第一节管的事。 */
+       每家都叫这个名，六家凑一起就成了"六个内容一种名字"，那也是第一节管的事。
+       data\plugins-factory\ 那一格（外43：导入时留的原版）同一条规矩：它本来就是设计好的第二份。 */
   /* 名字一样、内容本来就该不一样的那几份：产物里的 root.json 按它自己的位置重算相对路径，
      package.json 是现场生成的三个 exe 共用入口（见 mirror.mjs）；
      fd-serve.mjs 在 src\tools 下那一个是老门牌，整个文件就是一句 import 转发到 src\_fd\ 那一份（它自己写着为什么）；
@@ -88,7 +89,7 @@ head('二、同一个名字出现多处 · 只报内容不一样的（一样的�
     const n = path.basename(rel);
     if(!/\.(js|cjs|mjs|ps1|dll|md|yaml|json|svg|txt)$/.test(n)) continue;
     if(rel.replace(/\\/g, '/').startsWith('resources/app/')) continue;
-    const m = rel.replace(/\\/g, '/').match(/^data\/plugins\/[^/]+\/(.+)$/);
+    const m = rel.replace(/\\/g, '/').match(/^data\/(?:plugins|plugins-factory)\/[^/]+\/(.+)$/);
     if(m && PACK_STANDARD_NAMES.indexOf(path.basename(m[1])) >= 0) continue;
     if(SAME_NAME_DIFFERENT_JOB.indexOf(n) >= 0) continue;
     if(!byName.has(n)) byName.set(n, []);
@@ -153,8 +154,8 @@ head('三、四棵源码树里没被生成脚本点名的 .js（拼不进产物�
   if(!dead) say('  ✓ 每一份都被点名了（宿主这边 ' + named.size + ' 个名字，为写 ' + namedW.size + ' 个，组件定制 ' + namedC.size + ' 个）');
 }
 
-/* ---------- 四、说明书点的随行文件在不在：包里 + 出厂那一格 ---------- */
-head('四、插件说明书 assets 点的随行文件 · 包里和出厂那一格各在不在');
+/* ---------- 四、说明书点的随行文件在不在 + 程序那一层干不干净 ---------- */
+head('四、插件说明书 assets 点的随行文件 · 包里在不在（出厂那一格已经撤了，见外43）');
 {
   const packs = path.join(SRC_DATA, 'plugins');
   let n = 0;
@@ -167,12 +168,17 @@ head('四、插件说明书 assets 点的随行文件 · 包里和出厂那一�
       const rel = path.basename(String(m.assets[k]));
       n++;
       if(!exists(path.join(packs, e.name, rel))) bad(e.name + ' 说明书说 assets.' + k + ' 是 ' + rel + '，包里没这一份');
-      if(!exists(path.join(MIRROR, 'data', 'plugins', e.name, rel)))
-        bad(e.name + ' 的 ' + rel + ' 在出厂那一格里没有（这棵树上没建 data\\plugins 时就没兜底了）');
     }
   }
   if(!n) say('  · 没有任何包点随行文件');
-  else say('  ✓ ' + n + ' 处点名的随行文件，两边都在');
+  else ok(n + ' 处点名的随行文件都在包里');
+  /* 反着钉一条：插件的代码不许再回到程序那一层（外43 剥离的账）。
+     resources\app\data\plugins\ 一有东西，就说明有人把插件塞回发布链了。 */
+  const back = path.join(MIRROR, 'data', 'plugins');
+  if(exists(back)){
+    let k = 0; try{ k = fs.readdirSync(back).length; }catch(err){}
+    bad('出厂镜像里又出现了插件那一格（' + back + ' · ' + k + ' 家）—— 插件跟主程序分开各自发布，这一层不该有它');
+  } else ok('出厂镜像里没有插件那一格 · 程序这一层不带插件代码');
 }
 
 /* ---------- 五、手工那一步有没有掉链子 ---------- */

@@ -121,10 +121,11 @@ function serveFile(res, abs, alt){
 }
 /* ---------- /_comp：插件那一格的读写（和主进程同一把尺） ----------
    页面递来的都是 {op, id, rel, text}：包名和路径由 comp-files.cjs 查过才落地，
-   跑出 data\plugins\ 的一律写不进去。装卸那一头只碰 off.json 和目录清单两件事。 */
+   跑出 data\plugins\ 的一律写不进去。装卸那一头只碰 off.json 和目录清单两件事。
+   原版那一格在 data\plugins-factory\（外43 从 resources\app\data\plugins 挪过来的，跟主进程同一个位置）。 */
 const COMP = makeComp({
   live: path.join(DATA_DIR, 'plugins'),
-  factory: process.env.FD_FACTORY_COMPONENTS || path.join(TREE.tree, 'resources', 'app', 'data', 'plugins')
+  factory: process.env.FD_FACTORY_COMPONENTS || path.join(DATA_DIR, 'plugins-factory')
 });
 const OFF = () => path.join(DATA_DIR, 'plugins', 'off.json');
 /* 名单反着记：off.json 里只有「被卸掉的」。文件不在 = 一家都没卸，扫到的全生效。 */

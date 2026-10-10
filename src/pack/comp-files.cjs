@@ -4,9 +4,11 @@
    插件的代码和自带文件都住在 data\plugins\<id>\ 这一格里：
    「改代码」改的就是这一格里的 main.js，存了就是新的，刷新这一页立刻生效 ——
    不再有「写一份覆盖副本、等重新生成页面才嵌进去」那一趟。
-   出厂原文在程序自带的那一份 resources\app\data\plugins\ 里，
-   「恢复出厂」就是从那儿把这一格的文件拷回来（真复制，不用硬链接：
-   链接会让活文件和出厂副本变成同一份，改了活的等于改了出厂，恢复出厂就成了空话）。
+   原版在 data\plugins-factory\<id>\：导入那一下顺手真复制一份进去（程序自带的那一份从前住
+   resources\app\data\plugins\，外43 撤了 —— 插件跟主程序分开各自开发、各自发布，发布物里不许带插件代码；
+   那一层又每次更新都被整个换掉，用户的底放进去等于交给更新撤走）。
+   「恢复出厂」就是从原版那一格把这一格的文件拷回来（真复制，不用硬链接：
+   链接会让活文件和底变成同一份，改了活的等于改了底，恢复出厂就成了空话）。
    ----------
    三道闸（谁都绕不过去，包括页面里递上来的路径）：
      1 包名只认干净字符（字母数字点横线下划线），别的一律不落地；
@@ -55,7 +57,7 @@ module.exports = function make(opt){
   const o = opt || {};
   const dir = k => { const v = typeof o[k] === 'function' ? o[k]() : o[k]; return v ? path.resolve(String(v)) : ''; };
   const LIVE = () => dir('live');          /* data\plugins\ —— 程序现在真正加载的那一层 */
-  const FACT = () => dir('factory');       /* resources\app\data\plugins\ —— 出厂原文 */
+  const FACT = () => dir('factory');       /* data\plugins-factory\ —— 导入时留的原版 */
 
   /* 包名 + 相对路径 → 这一格里的真路径；不干净的回错误话，绝不落盘 */
   function locate(id, rel){
@@ -71,7 +73,7 @@ module.exports = function make(opt){
     if(f !== base && !f.startsWith(base + path.sep)) return { msg:'路径跑出了这一格：' + String(rel) };
     return { id:nm, file:f, root };
   }
-  /* 出厂那一格里对应的位置（恢复出厂用） */
+  /* 原版那一格里对应的位置（恢复出厂用） */
   function factFile(id, rel){
     const root = FACT();
     if(!root || !isDir(root)) return '';
@@ -153,17 +155,17 @@ module.exports = function make(opt){
       return { ok:true, files:out };
     },
 
-    /* ---------- 恢复出厂：从自带那一层把这一份原样拷回来 ---------- */
+    /* ---------- 恢复出厂：从原版那一格把这一份原样拷回来 ---------- */
     restore(id, rel){
       const r = String(rel || 'main.js');
       const L = locate(id, r);
       if(L.msg) return { ok:false, msg:L.msg };
       const from = factFile(L.id, segsOf(r));
-      if(!from) return { ok:false, msg:'程序自带的那一份里没有这一家（' + L.id + '）的出厂原文 · 恢复出厂用不了' };
+      if(!from) return { ok:false, msg:'原版那一格里没有这一家（' + L.id + '）的这一份 · 导入那一下才会留底，留了底才恢复得了' };
       try{ return { ok:true, size:copyFile(from, L.file) }; }
       catch(e){ return { ok:false, msg:'拷不回来：' + (e && e.code || e) }; }
     },
-    /* 这一家有哪几份出厂原文（信息页与「恢复出厂」的说明用得上） */
+    /* 这一家有哪几份原版（信息页与「恢复出厂」的说明用得上） */
     factoryFiles(id){
       const base = path.join(FACT() || '\0', String(id));
       if(!ID_OK.test(String(id)) || !isDir(base)) return [];
@@ -179,26 +181,44 @@ module.exports = function make(opt){
       try{ walk(''); }catch(e){ return []; }
       return out;
     },
-    /* ---------- 第一趟：整棵 plugins 还没落地（新机器、整个文件夹拷过来）时，
-       把自带那一层的一格格铺过去。已有的一个字不动，绝不覆盖用户改过的东西。 ---------- */
-    seedMissing(){
-      const root = LIVE(), fact = FACT();
-      if(!root || !fact || !isDir(fact)) return { ok:true, laid:0, ids:[] };
-      if(isDir(root) && fs.readdirSync(root).some(n => !n.startsWith('.'))) return { ok:true, laid:0, ids:[] };
-      let laid = 0;
-      const ids = [];
+    /* ---------- 导入那一下顺手留底：把活的那一格原样复制进原版那一格 ----------
+       真复制、不用链接（链接会让活文件和底变成同一份，「改代码」存一下就改了底，恢复出厂成空话）。
+       先抹掉旧的再拷：这一格里不许留下一个新版没有的文件，不然「恢复出厂」会拿老文件补回新版里删掉的那份。
+       只在导入 / 摊开那一条道上调用 —— 用户改过的东西绝不会被这一步碰到。 */
+    keepFactory(id){
+      const L = locate(id);
+      if(L.msg) return { ok:false, msg:L.msg };
+      if(!isDir(L.file)) return { ok:false, msg:'这一格还不在，留不出底：' + L.id };
+      const fact = FACT();
+      if(!fact) return { ok:false, msg:'原版那一格还没定下来' };
+      const to = path.join(fact, L.id);
+      if(to !== fact && !to.startsWith(fact + path.sep)) return { ok:false, msg:'落点跑出了原版那一格' };
       try{
-        fs.mkdirSync(root, { recursive:true });
-        for(const e of fs.readdirSync(fact, { withFileTypes:true })){
-          if(!e.isDirectory() || e.name.startsWith('.')) continue;
-          if(!ID_OK.test(e.name)) continue;
-          const to = path.join(root, e.name);
+        fs.rmSync(to, { recursive:true, force:true });
+        const n = copyTree(L.file, to);
+        return { ok:true, files:n, where:L.id + '/' };
+      }catch(e){ return { ok:false, msg:'留底没留成：' + (e && e.code || e) }; }
+    },
+    /* ---------- 老树那一下：原版从前住在程序自带那一层（resources\app\data\plugins\），
+       外43 挪进数据层。第一次开机从老位置一家家取过来，目标已经有这一家的一个字不动。
+       只取不删：老那一格在程序层，下一次更新包换程序层时自己就没了。 */
+    adoptOldFactory(from){
+      const fact = FACT();
+      const out = { moved:[], files:0 };
+      if(!fact || !from || !isDir(from)) return out;
+      if(path.resolve(from) === path.resolve(fact)) return out;
+      try{
+        fs.mkdirSync(fact, { recursive:true });
+        for(const e of fs.readdirSync(from, { withFileTypes:true })){
+          if(!e.isDirectory() || e.name.startsWith('.') || !ID_OK.test(e.name)) continue;
+          if(!isFile(path.join(from, e.name, 'manifest.json'))) continue;
+          const to = path.join(fact, e.name);
           if(isDir(to)) continue;
-          laid += copyTree(path.join(fact, e.name), to);
-          ids.push(e.name);
+          out.files += copyTree(path.join(from, e.name), to);
+          out.moved.push(e.name);
         }
-        return { ok:true, laid, ids };
-      }catch(e){ return { ok:false, msg:'出厂那一层铺不过来：' + (e && e.code || e), laid, ids }; }
+      }catch(err){ return Object.assign(out, { msg:'原版那一格取不过来：' + (err && err.code || err) }); }
+      return out;
     }
   };
 };
