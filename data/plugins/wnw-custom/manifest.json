@@ -1,0 +1,21 @@
+{
+  "id": "wnw-custom",
+  "name": "组件定制",
+  "author": "Flow-Desk",
+  "source": "内置出厂",
+  "version": "1.0.0-alpha+build.b9daa64",
+  "minShell": "1.0.0",
+  "host": [
+    "fd"
+  ],
+  "entry": [
+    "main.js"
+  ],
+  "order": 25,
+  "icon": "⚙",
+  "type": "widget",
+  "desc": "一张卡，点了开组件定制向导；改代码、导出导入那些入口照旧长在每张卡自己身上",
+  "first": 50,
+  "dataKeys": [],
+  "kvKeys": []
+}
