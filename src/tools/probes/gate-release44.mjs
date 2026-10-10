@@ -9,6 +9,7 @@
    ============================================================ */
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { rd, 记账 } from './lib-slice.mjs';
 
@@ -47,8 +48,10 @@ const pub = rd('src/pack/publish.mjs');
 台.判('不再顺手 reflog expire / gc（那一套是为 amend 收尸的）', !/reflog', 'expire/.test(rep) && !/'gc', '--prune=now'/.test(rep));
 台.判('有改动就是新起一笔（话也改成这个样子）', /提交 = 老 \? '新提交一笔' : '造了首次提交'/.test(rep));
 台.判('被当零件 import 时命令行那一段一个字都不跑', /if\(被当命令跑\)\{/.test(rep) && /const 被当命令跑 = process\.argv\[1\]/.test(rep));
+/* Windows 上 import 绝对路径要写成 file:// URL，直接给 D:\... 会当场抛协议不对 */
+const 那颗URL = pathToFileURL(path.resolve('D:/Programs/Flow-Desk/src/_build/plugin-repos.mjs')).href;
 台.判('这一条不是白钉的：import 它一次，屏幕上不该冒出七家的账', (() => {
-  const out = execFileSync(process.execPath, ['-e', 'import(' + JSON.stringify(path.resolve('D:/Programs/Flow-Desk/src/_build/plugin-repos.mjs')) + ').then(m => console.log("只出零件 " + m.REPOS.length))'],
+  const out = execFileSync(process.execPath, ['-e', 'import(' + JSON.stringify(那颗URL) + ').then(m => console.log("只出零件 " + m.REPOS.length))'],
     { cwd:'D:/Programs/Flow-Desk/', encoding:'utf8' });
   return out.trim() === '只出零件 7' && !/Flow-Desk-plugin-/.test(out);
 })());
