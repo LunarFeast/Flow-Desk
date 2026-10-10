@@ -4,8 +4,8 @@
    乙案之后插件代码不拼在产物里：data\plugins\<id>\main.js 就是它现在跑的这一份。
    存了就是新的 —— 存完立刻重载这一家（加载器 PackLoader.reload 重新 import 一遍，
    宿主在那儿重画这张卡），既不跑重新构建，也不用刷新整页。
-   想回到出厂那一版：「恢复出厂」从程序自带的那一层
-   （resources\app\data\plugins\<id>\）把同一份文件原样拷回来。
+   想回到导入时那一份：「恢复出厂」从原版那一格
+   （data\plugins-factory\<id>\，导入那一下自动留的底）把同一份文件原样拷回来。
    ----------
    两条通道同一个口径（三道闸都写在 src\pack\comp-files.cjs 里：
    包名只认干净字符 · 相对路径不许有 .. · 落点必须在 plugins\<id>\ 里面）：
@@ -52,7 +52,7 @@ const PackCode = {
   async read(id, rel){ return await this.call('read', { id, rel }); },
   async write(id, rel, text){ return await this.call('write', { id, rel, text }); },
   async restore(id, rel){ return await this.call('restore', { id, rel }); },
-  /* 这一家有几份出厂原文（决定「恢复出厂」这个按钮摆不摆、点了有没有用） */
+  /* 这一家有几份原版（决定「恢复出厂」这个按钮摆不摆、点了有没有用） */
   async factory(id){ const r = await this.call('factory', { id }); return (r && r.files) || []; },
   /* 这一格里有哪几份能改的文本文件：读不到清单就退回「入口 + 说明书 + 配方」那三份 */
   async files(id){
@@ -87,8 +87,8 @@ const PackCode = {
       return { ok:true, reloaded:false, msg:'已从程序自带的那一层拷回这一份 · 下次开机加载时认它' };
     const k = await PackLoader.reload(id);
     return { ok:true, reloaded:!!(k && k.ok),
-      msg:k && k.ok ? '已拷回出厂那一版 · 「' + Packs.name(id) + '」跟着重载好了'
-        : '已拷回出厂那一版 · 这一版加载不起来：' + ((k && k.msg) || '') };
+      msg:k && k.ok ? '已拷回原版 · 「' + Packs.name(id) + '」跟着重载好了'
+        : '已拷回原版 · 这一版加载不起来：' + ((k && k.msg) || '') };
   },
 
   /* ---------- 整格恢复出厂：点名那几份从自带那一层拷回来，然后重载这一家 ----------
@@ -146,8 +146,8 @@ const PackCode = {
       if(!r || r.ok === false){ toast('这一份现在读不到：' + ((r && r.msg) || '')); return; }
       if(api){ api.set(r.text || ''); base = String(r.text || ''); }
       pick.value = cur;
-      const fb = hasFact(cur) ? ' · 程序自带那一层有这一份的出厂原文，可以「恢复出厂」'
-        : ' · 程序自带的那一层没有这一份，改坏了没法恢复出厂';
+      const fb = hasFact(cur) ? ' · 原版那一格里有这一份，可以「恢复出厂」'
+        : ' · 这一家没留出原版（导入那一下才会有底），改坏了恢复不了';
       hint.textContent = '上面挑的这一段就是「' + nm + '」现在用的这一份'
         + (cur === PackCode.entry(id) ? ' · 存了立刻按这一份重载' : ' · 这一份不是入口，下次加载时才认') + fb;
       restBtn.disabled = !hasFact(cur);

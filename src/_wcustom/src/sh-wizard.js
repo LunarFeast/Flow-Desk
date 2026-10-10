@@ -275,8 +275,9 @@ class GenSheet{
     this.R = R;
     this.loadBank(R.bank).then(() => this.draw());
   }
-  /* 「恢复出厂」这个按钮摆不摆，得先问一句程序自带的那一层有没有这一家的出厂原文：
-     新建那张还没落盘、导入进来的第三方包自带层里没有 —— 这两种情况这一格就空着，不摆一个点了是空话的按钮。 */
+  /* 「恢复出厂」这个按钮摆不摆，得先问一句原版那一格（data\plugins-factory\）有没有这一家的底：
+     新建那张还没落盘、没有底 —— 这种情况这一格就空着，不摆一个点了是空话的按钮。
+     外43 起导入那一下会顺手留底，所以正常导入进来的第三方包也摆得出这颗钮。 */
   async factSlot(slot){
     const id = this.editing;
     if(!id || typeof PackCode === 'undefined' || !PackCode.can()) return;
@@ -286,15 +287,15 @@ class GenSheet{
     slot.appendChild(this.btn('恢复出厂', () => this.restore(),
       '恢复初始版本'));
   }
-  /* 换回出厂那一版：点名那三份从 resources\app\data\plugins\ 拷回来，紧接着重载这一家。
+  /* 换回原版：点名那三份从 data\plugins-factory\<id>\ 拷回来，紧接着重载这一家。
      自己后来往这一格里加的文件不在点名这几份里，那一次拷回不动它们。 */
   async restore(){
     const id = this.editing;
     if(!id) return;
-    if(!confirm('要把「' + this.R.name + '」这一格里的代码和配方换成程序自带的那一版 · 你现在这份就被覆盖了，继续吗？')) return;
+    if(!confirm('要把「' + this.R.name + '」这一格里的代码和配方换成原版那一格里的版本（导入那一下留的底）· 你现在这份就被覆盖了，继续吗？')) return;
     const r = await PackCode.restorePack(id, ['main.js', 'recipe.json', 'manifest.json']);
-    if(!r || !r.ok){ toast('没换成出厂那一版：' + ((r && r.msg) || '主进程没回话')); return; }
-    toast(r.msg || '已经换成程序自带的那一版');
+    if(!r || !r.ok){ toast('没换成原版：' + ((r && r.msg) || '主进程没回话')); return; }
+    toast(r.msg || '已经换成导入时那一份原版');
     /* 关掉这张草稿，再按重载回来的那一版重新开一张：手上这份已经被覆盖了，留着只会让人以为还没存 */
     H().dlg.close();
     if(Gen.get(id)) GenWizard.open(id);
