@@ -1,0 +1,22 @@
+# 换行统一：仓里和工作区都存 LF（这条链写出来的文件本来就是 LF，签出时别再改成 CRLF）
+* text=auto eol=lf
+
+# 例外：双击就跑的批处理。cmd.exe 读不惯光秃秃的换行 —— 行首会被它吃掉几个字，
+# 一句 rem 能变成三条「不是内部或外部命令」（2026-10-10 那颗推送脚本就这么坏过一次）。
+# 仓里照旧存 LF，签出到工作区必须是 CRLF。
+*.bat text eol=crlf
+
+# 出片依赖的底座：按行号切片读，绝不能被换行转换改动
+src/_build/rp-base.html -text
+
+# 二进制：别试图做文本 diff
+*.png binary
+*.docx binary
+*.exe binary
+*.dll binary
+*.pak binary
+*.bin binary
+*.dat binary
+
+# 出片产物与数据层本来就被 .gitignore 挡着，这里再标一次生成物，diff 时省事
+src/_vendor/icode/icode.js -diff linguist-generated=true

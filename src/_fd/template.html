@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-mode="material" data-wall="solid" data-tex="none">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flow-Desk</title>
+<style>
+:root{
+  /* 由 RP 1.0 配色引擎派生出的同名 token，运行时由 Theme.apply 覆写 */
+  --page-bg:#f3f4f6; --card-bg:#ffffff; --card-border:#e1e4ea;
+  --text:#2f3338; --text-light:#8a8f99; --accent:#3b6cb5; --accent2:#3b6cb5;
+  --accent-light:#e8f0fc; --loaded-bg:#ebf2fc; --loaded-border:#b3c9ee;
+  --candidate-bg:#f0f2f5; --input-bg:#ffffff;
+  /* 按钮底不写死白色：那一块必须跟着配色走（同一句写在 sh-color.js 的派生里，运行时由 Theme.apply +
+     外观层现算覆写）。写死 #ffffff 的话，在任何带色相的卡面上都是一块白斑 —— 底这一档给的是
+     「卡面掺一成强调色」，和派生那一路同一个算法，配色没上屏时也不会先闪一块白。 */
+  --btn-bg:color-mix(in srgb,var(--card-bg) 90%,var(--accent));
+  --sel-bg:#3b6cb5; --sel-text:#ffffff; --input-border:#c9ccd4;
+  --scrollbar:#d8dbe1; --scrollbar-hover:#b9bec7;
+  --ok:#2e7d4f; --bad:#b3402f; --warn:#a2701a;
+  /* 底是 1px：外观模式四档里只有「质感」把外框收成 0，其余三档都是 1px，没有更粗的一档。
+     从前这个占位值写的是 1.5px —— 那是已经撤掉的玻璃边缘亮环的宽度，不是外框。 */
+  --bw:1px; --radius:5px;
+  /* 分隔线专用（对话框顶底那两道、设置左列那条竖线、日历格线、行线……）：
+     --bw 和 --card-border 管的是卡片与控件的外框，质感那一档会把外框收成 0 并让边框色透明，
+     靠影子分高低 —— 分隔线跟着它们一起塌，看着就是「外观模式没应用上」。
+     这一条永远 1px、四档一个样；运行时 sh-look.js 会把同样的三个变量写到根元素上（值一样），
+     这里给的是宿主自己开页时的底，别让没跑外观层的场合一条线都剩不下。 */
+  --hair-w:1px; --hair-color:color-mix(in srgb, var(--text) 50%, transparent);
+  --hair:var(--hair-w) solid var(--hair-color);
+  /* FD 新增 */
+  /* 全局圆角：出厂默认 5px（卡片、控件两档都是 5）。
+     真身只有这两个值，--r-card / --r-btn / --r-pill 全是它们的别名，
+     运行时由 Theme.apply()（fd3-shell.js）按设置里那两个滑块覆写。
+     界面里凡是两边相接形成角的地方都只吃这几个名字，不许再写死 px。 */
+  --radius-card:5px;
+  --r-card:var(--radius-card); --r-btn:var(--radius); --r-pill:var(--radius);
+  --gap:14px; --pad:20px;
+  --wall-a:#eef1f6; --wall-b:#dfe6f2;
+  /* 背景那一层的占位值：真身由 Theme.apply()（fd3-shell.js）拿 Look.wallVars（sh-look.js）现算后覆写。
+     这里只保证「配色还没跑完」时那两条规则不吃空值。 */
+  --wall-image:none;
+  --wall-blur:0px; --wall-pad:8px; --wall-tint:rgba(0,0,0,0);
+  /* 渐变真身在 _shared/sh-look.js：这一套配色该走五档里的哪一档、停靠点取哪几个现成色号，
+     全在 Look.grad() 里现算，算完写成根元素上的 --wall-grad。这里这一条只是「配色还没跑完」时的兜底。 */
+  --wall-grad:linear-gradient(150deg,var(--wall-a) 0%,var(--wall-b) 58%,var(--card-bg) 100%);
+  /* 卡片外框、影子、发光 —— 这些一律由 _shared/sh-look.js 在运行时按四档外观模式写到根元素上，
+     这里不再留占位值（从前那三个 --card-alpha/--card-blur/--card-sheen 是旧玻璃的遗迹，
+     卡片底只剩实色之后，透不透、糊不糊这两样根本不存在了） */
+  --slot-1:var(--accent); --slot-2:var(--accent); --slot-3:var(--accent);
+  --slot-4:var(--accent); --slot-5:var(--accent);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;color:var(--text);
+  font-family:"霞鹜文楷等宽","LXGW WenKai Mono","Segoe UI","Microsoft YaHei","霞鹜文楷 屏幕阅读版","LXGW Screen Reader",system-ui,sans-serif;
+  font-size:calc(14px * var(--vsc,1));
+  overflow:hidden;
+}
+#wall{position:fixed;inset:0;z-index:0;background:var(--wall-b);}
+html[data-wall="gradient"] #wall{background-color:var(--page-bg);background-image:var(--wall-grad,none);}
+html[data-wall="solid"] #wall{background:var(--page-bg);}
+/* 渐变铺的第二块面（外29 补充）：卡片展开之后那一张。缩小在首页的卡片不铺，样式表里对它们
+   一条都没写，吃的还是外观层那一句实色卡面 —— 一张小卡底下压着整屏渐变，自己再来一条就叠成两层。
+   --card-grad 由 Theme.apply 在背景真铺着渐变时才写值（拿卡面当页面底重算的那一串），
+   不铺时钉 none、data-cgrad 跟着落 off，展开的卡片也回到实色。 */
+html[data-cgrad="on"] .fd-card.expanded{background-image:var(--card-grad,none);}
+/* 背景那一层（外13-R D3-b）：一张图铺满整屏（居中裁切），住在 #wall::before 这一格里，
+   卡片和卡片里的控件不吃糊 —— 从前是直接写在 #wall 的 background 上，filter 要挂就得连整块底一起挂，
+   糊不到控件以外的地方反而把调子那层顶掉了。
+   四周各往外放大 --wall-pad（= max(8, 模糊半径 × 3)）再糊：blur 会把画面往里啃掉约一个影响半径，
+   不放大就会在屏幕四边各露出一条没糊过的底色。--wall-blur / --wall-pad 由 Look.wallVars 现算。
+   从前这里还有一条 data-wall="tile"（四方连续当壁纸那一档）：2026-10-08 作者把纹理和四方连续图
+   定成同一样东西，那一档从背景这一排里退出去了，屏幕上铺纹理改走下面 #wallTex 那一格。 */
+html[data-wall="image"] #wall{background:var(--page-bg);}
+html[data-wall="image"] #wall::before{
+  content:"";position:absolute;inset:calc(-1 * var(--wall-pad,8px));
+  background-position:center;background-repeat:no-repeat;background-size:cover;
+  filter:blur(var(--wall-blur,0px));background-image:var(--wall-image,none);}
+/* 压暗 / 提亮那一层只盖壁纸：纯色和渐变那一档吃的是没压过的页面底，
+   readable() 和数值自检量的也是那一块 —— 再罩一层调子等于拿一套没参与计算的数去量字。
+   方向由这套配色的明暗定（深底压黑、浅底提白），深浅归那一根滑杆，真身在 sh-look.js。 */
+html[data-wall="image"] #wall::after{
+  content:"";position:absolute;inset:0;background:var(--wall-tint,rgba(0,0,0,0));}
+/* 方案那张纹理 / 四方连续图进 Flow-Desk 的背景（外29 丁组：「纹理/四方连续图会进入所有的FD背景、
+   卡片背景、展开后的组件背景等」）。卡片那一面吃的是 _shared/sh-look.js 里那一条 ::after，
+   背景这一格吃的是这一条 —— 两处的变量、格位、去色法完全是同一串，不各写一份。
+   压在背景那一档之上、桌面卡片之下；没挑纹理时 --tex-image 就是 none，这一格等于不存在。 */
+#wallTex{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:var(--tex-image,none) repeat;background-size:var(--tex-size,auto);
+  opacity:var(--tex-opacity,0);filter:var(--tex-filter,none);}
+
+/* ============ 顶栏 ============ */
+/* 这一条就是标题栏：程序里系统那圈已经藏了（main.cjs 里 titleBarStyle:'hidden'），
+   整条能拖动窗口，钮和菜单各自 no-drag。 */
+.fd-top{position:relative;z-index:2;display:flex;align-items:center;gap:14px;
+  -webkit-app-region:drag;
+  padding:calc(16px * var(--vsc,1)) calc(22px * var(--vsc,1)) calc(10px * var(--vsc,1));}
+.fd-top button{-webkit-app-region:no-drag;}
+.fd-brand{font-size:1.4286rem;font-weight:700;letter-spacing:.5px;}
+.fd-brand small{display:block;font-size:.6786rem;font-weight:500;color:var(--text-light);letter-spacing:2px;text-transform:uppercase;}
+.fd-when{margin-left:6px;font-size:.9286rem;color:var(--text-light);}
+.fd-when b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
+.fd-top-sp{flex:1;}
+/* 原则：按钮上的字一律不折行 —— 字多了就让按钮变宽，不要把一句「添加插件」劈成两行。
+   这一条得有下半句才成立：父行得允许整枚按钮折到下一行去（下面 .fd-row 的 flex-wrap），
+   否则按钮不变宽、也不换行，而是被那一行裁掉 —— 作者 2026-10-09 图1 说的「按钮换行」就是这个现象：
+   「按背景图导入 / 按取色素材导入 / 按纹理 / 内置纹理收进图片库」那一排摆不下，最后一枚被切了一半。 */
+button{font:inherit;color:inherit;cursor:pointer;white-space:nowrap;}
+.fd-btn{background:var(--btn-bg);border:var(--bw) solid var(--card-border);border-radius:var(--radius);
+  padding:6px 13px;font-size:.9286rem;transition:transform .12s,border-color .12s,background .12s;white-space:nowrap;}
+/* 悬停换的这条线走正文色不走强调色：强调色下限只有 3.0，和静止那条 --ctl-edge（也是 3.0）
+   只差色相不差明度，鼠标指上去看不出来（无障碍走查 D-2）。 */
+.fd-btn:hover{border-color:var(--text);transform:translateY(-1px);}
+.fd-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--sel-text);}
+.fd-btn.ghost{background:transparent;}
+.fd-btn.mini{padding:3px 9px;font-size:.7857rem;}
+.fd-btn.danger:hover{border-color:var(--bad);color:var(--bad);}
+/* 左上角菜单那个 + 右上角窗口那三个：都是线条图标，淡底跟卡片同一套 color-mix */
+.fd-mbtn{background:transparent;border:0;border-radius:var(--radius);padding:7px;
+  color:var(--text-light);display:inline-flex;align-items:center;}
+.fd-mbtn:hover,.fd-mbtn.on{background:color-mix(in srgb,var(--card-bg) 55%,transparent);color:var(--text);}
+.fd-wctl{display:flex;gap:2px;margin-left:8px;}
+.fd-wbtn{background:transparent;border:0;border-radius:var(--radius);
+  width:2.3em;height:2.3em;display:inline-flex;align-items:center;justify-content:center;
+  padding:0;color:var(--text-light);}
+.fd-wbtn .w-ico{width:1.05em;height:1.05em;}
+.fd-wbtn:hover{background:color-mix(in srgb,var(--card-bg) 55%,transparent);color:var(--text);}
+.fd-wbtn.x:hover{background:var(--bad);color:var(--bad-text,var(--sel-text));}
+/* 自绘菜单：一层，行尾是快捷键，分组只用一道细线隔开 */
+.fd-menu{position:fixed;z-index:70;min-width:15.5em;display:flex;flex-direction:column;gap:1px;padding:6px;
+  border-radius:var(--radius-card);border:var(--bw) solid var(--card-border);
+  background:color-mix(in srgb,var(--card-bg) 94%,transparent);}
+.fd-menu[hidden]{display:none;}
+.fd-mi{display:flex;align-items:center;gap:16px;width:100%;text-align:left;font:inherit;
+  background:transparent;border:0;border-radius:var(--radius);padding:7px 11px;color:var(--text);}
+.fd-mi:hover{background:var(--accent-light);color:var(--accent-text,var(--accent));}
+.fd-mi kbd{margin-left:auto;font:inherit;font-size:.82em;color:var(--text-light);}
+.fd-msep{height:1px;margin:5px 9px;background:var(--hair-color);}
+
+/* ============ 栅格 ============ */
+.fd-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(12,1fr);
+  grid-auto-rows:var(--cell,80px);gap:var(--gap);
+  padding:0 calc(22px * var(--vsc,1)) calc(18px * var(--vsc,1));
+  height:calc(100% - var(--top-h,74px));overflow:auto;align-content:start;}
+.fd-grid::-webkit-scrollbar{width:10px;}
+.fd-grid::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:var(--r-pill,5px);}
+.fd-grid::-webkit-scrollbar-thumb:hover{background:var(--scrollbar-hover);}
+
+/* ============ 卡片 ============
+   卡片底只有实色（配色那张卡面掺过墨的那一块，由 _shared/sh-look.js 现算），
+   外框、影子、发光全在四档外观模式那一份里给（质感不画框靠影子分高低，辉光描霓虹线加外发光，
+   纯平 / 无界只留一道线），这里只留版式和圆角。
+   从前这几条规则里的 glass / clear 两档、还有顶上那一道渐变高光，一并交给了那一层。 */
+.fd-card{position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  border-radius:var(--radius-card);border:var(--bw) solid var(--card-border);}
+.fd-card-head{position:relative;display:flex;align-items:center;gap:8px;flex:0 0 auto;
+  padding:11px var(--pad) 7px;font-size:.8929rem;font-weight:600;color:var(--text-light);letter-spacing:.4px;}
+.fd-card-head .dot{width:8px;height:8px;border-radius:50%;background:var(--slot,var(--accent));flex:0 0 auto;}
+.fd-card-head .sp{flex:1;}
+.fd-card-tools{display:flex;gap:4px;opacity:0;transition:opacity .15s;}
+.fd-card:hover .fd-card-tools{opacity:1;}
+/* 键盘走进卡片时那排钮一直藏在 opacity:0 里：能聚焦、看不见（无障碍走查 C-3）。
+   hover 是给鼠标的，:focus-within 是给键盘的，两条各自独立，不合并。 */
+.fd-card:focus-within .fd-card-tools{opacity:1;}
+.fd-tool{background:transparent;border:none;border-radius:var(--r-btn,5px);padding:2px 6px;font-size:.8571rem;color:var(--text-light);}
+.fd-tool:hover{background:var(--candidate-bg);color:var(--text);}
+.fd-card-body{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;padding:0 var(--pad) 13px;}
+.fd-empty{margin:auto;text-align:center;font-size:.8929rem;color:var(--text-light);line-height:1.9;}
+.scroll-y{overflow:auto;min-height:0;}
+.scroll-y::-webkit-scrollbar{width:8px;}
+.scroll-y::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:var(--r-pill,5px);}
+
+/* ============ 通用控件 ============ */
+.fd-input,textarea.fd-input,select.fd-input{background:var(--input-bg);border:var(--bw) solid var(--input-border);
+  border-radius:var(--radius);padding:6px 9px;font:inherit;color:var(--text);width:100%;}
+/* 键盘 Tab 走到输入框那一下要有能看见的焦点框（走查第 7 条 / WCAG 2.4.7）：
+   从前这句把 outline 整个关掉，质感那一档边框宽度又是 0，聚焦就什么都不剩了。
+   现在只关「不是键盘焦点」那一种 —— 鼠标点进去还是干净的强调色边框，
+   键盘走到的那一圈由 sh-look 的 :focus-visible 给（2px 实线 + 2px 外扩，不吃 --bw）。 */
+.fd-input:focus{border-color:var(--accent);}
+.fd-input:focus:not(:focus-visible){outline:none;}
+textarea.fd-input{resize:none;line-height:1.7;}
+.fd-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+/* 色块外那一圈：是「让深色的色块在深底上也认得出来」的分隔线，不是卡片外框，
+   所以走 --hair（四档一个样），不走会跟着质感收成 0 的 --bw。 */
+.fd-swatch{width:20px;height:20px;border-radius:var(--r-btn,5px);border:var(--hair);flex:0 0 auto;}
+
+/* ============ 覆盖层 / 弹窗 ============
+   这两层遮罩从前各带一道 backdrop-filter（封面糊 6px、弹窗糊 5px），看着是「背后糊掉」很高级，
+   其实把卡面按死了：带 backdrop-filter 的祖先自己成了一个 backdrop root，它下面那些层只能
+   采样它自己子树里已经画好的东西 —— 对话框里那张卡透出的是这层黑纱本身，一块均匀的深灰，
+   而外观方案那一屏就住在弹窗里：改的数在这层黑纱后面，预览条看着就是「没生效」。
+   卡片底现在只有实色，背后没有东西可糊，两层的 backdrop-filter 一律撤掉；
+   压深这一层的黑（.42→.5、.4→.48）补回模糊没了的那点分隔。 */
+.fd-cover{position:fixed;inset:0;z-index:50;background:rgba(12,14,18,.5);
+  display:flex;flex-direction:column;padding:calc(14px * var(--vsc,1));}
+.fd-cover[hidden]{display:none;}
+.fd-cover-bar{display:flex;align-items:center;gap:10px;color:#fff;font-size:.9286rem;padding:0 4px 10px;}
+.fd-cover-bar .sp{flex:1;}
+.fd-cover-bar .fd-btn{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.24);color:#fff;}
+/* 全屏条上那三个窗口按钮：底色是压深的，字色跟着走白 */
+.fd-cover-bar .fd-wbtn{color:rgba(255,255,255,.8);}
+.fd-cover-bar .fd-wbtn:hover{background:rgba(255,255,255,.18);color:#fff;}
+.fd-cover-bar .fd-wbtn.x:hover{background:var(--bad);color:var(--bad-text,var(--sel-text));}
+/* 顶栏那一条整段能拖窗口（上面 .fd-top 的 -webkit-app-region:drag），只有它自己的 button 打了 no-drag。
+   封面是它的兄弟不是它的孩子，没跟着沾光，而封面条就压在拖窗口那一段里：
+   平时「关闭」正落在右上角窗口钮挖的那个洞上，按得动；竖带那一档把封面条整个往左挪，
+   「关闭」就坐到了可拖的那一段上 —— 点下去被窗口拖走，DOM 收不到 click，这就是「这里无法关闭」。
+   拖窗口这件事只归顶栏：封面这一层里的控件一律不参与。 */
+.fd-cover button,.fd-cover input,.fd-cover select,.fd-cover textarea{-webkit-app-region:no-drag;}
+/* 全屏开子页那一张：底下压的是子页面自己画的整页，两边必须是同一块面才接得上缝。
+   --face-solid 就是合成完的那块面（配色那张卡底掺过墨的那一档，由 sh-look 现算），
+   从前这里和 iframe、和加载那一层都写 --card-bg —— 那是配色里那张没加工过的原卡，
+   从前写 --card-bg 那张原卡时，子页和母页差一层，看着就是两条缝。 */
+.fd-cover-body{flex:1;min-height:0;background:var(--face-solid,var(--card-bg));border-radius:var(--radius-card);overflow:hidden;
+  border:var(--bw) solid var(--card-border);position:relative;}
+/* 竖带那一档（def.card.band，目前只有音乐遥控器）：面板本身收成中间一条，标题那一行跟着同宽。
+   桌面模式（FD 面板最大化 + 全透明 + 点击穿透只留遥控器）是后话，这一轮只收形。 */
+.fd-cover-band .fd-cover-bar,.fd-cover-band .fd-cover-body{align-self:center;width:var(--fd-band-w,min(46em,92%));}
+/* 面板比视口高的那两种情况（菜单里放大到两倍、或者窗口本身就没 680 那么高）：
+   居中靠 align-items:center 的话，多出来的部分上下各裁一刀，既看不见也滚不出来（WCAG 1.4.4）。
+   改成遮罩自己能滚 + 面板用 margin:auto 居中 —— 放得下还是居中，放不下就滚得到。 */
+.fd-modal{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-start;justify-content:center;
+  overflow:auto;background:rgba(12,14,18,.48);padding:24px;}
+.fd-modal[hidden]{display:none;}
+.fd-dialog{background:var(--card-bg);border:var(--bw) solid var(--card-border);border-radius:var(--radius-card);
+  max-width:min(1080px,94vw);max-height:calc(100vh - 48px);margin:auto;display:flex;flex-direction:column;overflow:hidden;}
+/* 面板顶、底那两道是分区用的分隔线，不是卡片外框：走 --hair，四档都在，
+   不再跟着质感把外框收成 0（那一档下从前是头、身、脚三块连成一片，认不出边界）。 */
+.fd-dialog-head{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:var(--hair);font-weight:700;}
+.fd-dialog-head .sp{flex:1;}
+.fd-dialog-body{padding:18px 20px;overflow:auto;flex:1 1 auto;min-height:0;}
+.fd-dialog-foot{padding:12px 20px;border-top:var(--hair);display:flex;gap:8px;justify-content:flex-end;}
+/* 设置那一档定死 1080×680：每档内容长短差得多，窗口不该跟着一起一落地抖。
+   高度那一路兜到视口减去遮罩自己的上下 24px 内边距，绝不再往视口外面长。 */
+.fd-dialog.set{width:min(1080px,94vw);height:min(680px,calc(100vh - 48px));}
+/* 滚只许滚右栏：外层面板一滚，左边那一列竖标签就跟着往上跑，看着像标签会溜走 */
+.fd-dialog.set > .fd-dialog-body{overflow:hidden;display:flex;min-height:0;}
+/* 左竖标签：标签一列排在左边，右边整块是这一档的内容，内容长了自己滚 */
+.fd-set{display:flex;gap:18px;align-items:stretch;flex:1;min-width:0;min-height:0;}
+/* 设置左边那一竖列标签：列宽跟着最长的那个标签走，字多了就让列变宽 ——
+   原则和按钮一样：界面上的字不折行。 */
+.fd-set-tabs{flex:0 0 auto;min-width:104px;display:flex;flex-direction:column;gap:4px;align-content:start;
+  border-right:var(--hair);padding-right:12px;}
+.fd-set-tabs button{background:transparent;border:0;padding:6px 10px;text-align:left;border-radius:var(--r-btn,5px);
+  font-size:.8929rem;color:var(--text-light);cursor:pointer;white-space:nowrap;}
+.fd-set-tabs button:hover{color:var(--accent-text,var(--accent));}
+.fd-set-tabs button.on{background:var(--accent-light);color:var(--accent-text,var(--accent));font-weight:700;}
+.fd-set-body{flex:1;min-width:0;overflow:auto;}
+/* 设置某一档里面的横向次级标签（外29 · 外观那四页）：横着排在内容顶上，
+   形状吃竖列那一套（同一档字、同一个选中色），只是方向和内容区的关系换了 —— 不另起一套长相。
+   锁着的那一格（方案编辑在选中方案之前）：灰到点不动的样子，不是"看着能点、点了没反应"。 */
+.fd-sub-tabs{display:flex;gap:4px;align-items:center;border-bottom:var(--hair);padding-bottom:8px;margin-bottom:14px;}
+.fd-sub-tabs button{background:transparent;border:0;padding:6px 10px;border-radius:var(--r-btn,5px);
+  font-size:.8929rem;color:var(--text-light);cursor:pointer;white-space:nowrap;}
+.fd-sub-tabs button:hover{color:var(--accent-text,var(--accent));}
+.fd-sub-tabs button.on{background:var(--accent-light);color:var(--accent-text,var(--accent));font-weight:700;}
+.fd-sub-tabs button.off{color:var(--text-light);opacity:.45;cursor:not-allowed;}
+.fd-sub-tabs button.off:hover{color:var(--text-light);}
+.fd-sub-pane{min-width:0;}
+.fd-form{display:grid;grid-template-columns:max-content 1fr;gap:12px 16px;align-items:center;min-width:min(560px,86vw);}
+.fd-form .lbl{font-size:.8929rem;color:var(--text-light);text-align:right;}
+.fd-hint{font-size:.7857rem;color:var(--text-light);line-height:1.7;}
+.fd-seg{display:inline-flex;background:var(--candidate-bg);border:var(--bw) solid var(--card-border);border-radius:var(--radius);overflow:hidden;}
+/* 未选项的字色走 --seg-text：那是按槽底（不是卡面）推出来的那一档，见 sh-color 的派生。
+   留着 var(--text-light) 兜底，宿主没跑 readable 那一步时也不至于看不见。 */
+.fd-seg button{background:transparent;border:0;padding:5px 12px;font-size:.8571rem;color:var(--seg-text,var(--text-light));white-space:nowrap;}
+/* 选中那一档原来只换底色：低对比那几套配色上，底色换了也认不出来，
+   而 WCAG 1.4.1 不许只靠颜色传达「这是选中的」。加粗这一笔不花钱，也不动圆角和布局。 */
+.fd-seg button.on{background:var(--accent);color:var(--sel-text);font-weight:700;}
+.fd-gridpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+/* 空着那一格是「点这里新建」的门，虚线框必须在四档都看得见 —— 从前它跟外框一样吃 --bw，
+   质感那一档一收 0 就成了没有边的一块空白。线宽和线色走分隔线那一条（见 sh-look 的 --hair-*）。 */
+.fd-additem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  border:var(--hair-w) dashed var(--hair-color);border-radius:var(--radius);padding:16px 8px;background:transparent;color:var(--text-light);}
+.fd-additem:hover{border-color:var(--accent);color:var(--accent-text,var(--accent));}
+.fd-additem b{font-size:1.5rem;font-weight:400;line-height:1;}
+#toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,14px);z-index:90;opacity:0;
+  /* 只过渡开合那两样。从前这里写的是光一个时长（= all），配色和外观层每重铺一次，
+     圆角就被当成一个动画从头跑一遍，起点停在首帧 `var(--r-pill,5px)` 那个兜底上，
+     于是「控件圆角」设成 0 这个角还是圆的（外15 第 3 条）。 */
+  transition:opacity .22s,transform .22s;
+  background:var(--text);color:var(--card-bg);padding:8px 16px;border-radius:var(--r-pill,5px);font-size:.8929rem;pointer-events:none;}
+#toast.on{opacity:1;transform:translate(-50%,0);}
+</style>
+</head>
+<body>
+<div id="wall"></div>
+<div id="wallTex" aria-hidden="true"></div>
+<header class="fd-top">
+  <button class="fd-mbtn" id="fdMenuBtn" title="菜单" aria-label="菜单"></button>
+  <div class="fd-brand">Flow-Desk<small>personal workspace</small></div>
+  <div class="fd-when" id="fdWhen"></div>
+  <div class="fd-top-sp"></div>
+  <button class="fd-btn" id="fdAddBtn">添加插件</button>
+  <button class="fd-btn ghost" id="fdSetBtn">设置</button>
+  <div class="fd-wctl" id="fdWctl">
+    <button class="fd-wbtn" id="fdWinMin" title="最小化" aria-label="最小化"></button>
+    <button class="fd-wbtn" id="fdWinMax" title="最大化" aria-label="最大化"></button>
+    <button class="fd-wbtn x" id="fdWinClose" title="关闭" aria-label="关闭"></button>
+  </div>
+</header>
+<main class="fd-grid" id="fdGrid"></main>
+<div class="fd-cover" id="fdCover" hidden>
+  <div class="fd-cover-bar">
+    <span id="fdCoverTitle"></span><span class="sp"></span>
+    <!-- 全屏时标题栏被这一层盖住了，窗口那三个得在这儿也摆一份，不然最小化·最大化都够不着 -->
+    <div class="fd-wctl" id="fdCoverWctl">
+      <button class="fd-wbtn" id="fdCoverMin" title="最小化" aria-label="最小化"></button>
+      <button class="fd-wbtn" id="fdCoverMax" title="最大化" aria-label="最大化"></button>
+    </div>
+    <button class="fd-btn mini" id="fdCoverReload">重新载入</button>
+    <button class="fd-btn mini" id="fdCoverClose">关闭</button>
+  </div>
+  <div class="fd-cover-body" id="fdCoverBody"></div>
+</div>
+<div class="fd-modal" id="fdModal" hidden><div class="fd-dialog" id="fdDialog"></div></div>
+<!-- 弹出来的短句：读屏器要收得到（WCAG 4.1.3）。删除那一类由 toast() 临时换成 assertive。 -->
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/*__FD__*/
+</script>
+</body>
+</html>

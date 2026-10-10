@@ -1,0 +1,97 @@
+/* ============================================================
+   内置代码编辑器的外壳配色（跟着宿主那套 token 走）
+   基础布局在 icode.css 里已经并了 CodeMirror 自带那一份，
+   这一段负责底、字、行号、折叠箭头、搜索条和语法着色。
+   语法着色分明亮/黑暗两组：sh-icode.js 按卡面亮度挑一组，
+   往容器上挂 .icode-dark / .icode-light，这里只管着色本身。
+   ============================================================ */
+
+/* ---------- 壳 ---------- */
+.icode{border:1px solid var(--input-border,var(--card-border));background:var(--input-bg,var(--card-bg));
+  border-radius:var(--r-btn,5px);overflow:hidden;}
+.icode .CodeMirror{height:100%;background:transparent;color:var(--text);
+  font-family:var(--ff-code,ui-monospace,Consolas,monospace);font-size:.86em;line-height:1.62;}
+.icode .CodeMirror-scroll{overscroll-behavior:contain;}
+.icode .CodeMirror-lines{padding:8px 0;}
+.icode .CodeMirror pre.CodeMirror-line,
+.icode .CodeMirror pre.CodeMirror-line-like{padding:0 10px;}
+.icode .CodeMirror-gutters{background:transparent;border-right:1px solid var(--input-border,var(--card-border));}
+.icode .CodeMirror-linenumber{color:var(--text-light);padding:0 7px 0 5px;}
+.icode .CodeMirror-cursor{border-left:2px solid var(--text);}
+.icode .CodeMirror div.CodeMirror-secondarycursor{border-left:1px solid var(--text-light);}
+.icode .CodeMirror-selected{background:rgba(128,148,180,.20);}
+.icode .CodeMirror-focused .CodeMirror-selected{background:rgba(120,160,220,.30);}
+.icode .CodeMirror-activeline-background{background:rgba(128,148,180,.10);}
+.icode .CodeMirror-matchingbracket{color:var(--accent)!important;background:rgba(128,148,180,.18);}
+.icode .CodeMirror-nonmatchingbracket{color:#d03b3b!important;}
+/* 搜到的那些：底色给足，别用原生那层淡黄字底（深底上看不见） */
+.icode .cm-searching{background:rgba(232,190,60,.40);opacity:1;outline:1px solid rgba(232,190,60,.55);}
+.icode .CodeMirror-line::selection,.icode .CodeMirror-line>span::selection,
+.icode .CodeMirror-line>span>span::selection{background:rgba(120,160,220,.35);}
+
+/* ---------- 折叠：箭头用细角，不用方块 ---------- */
+.icode .CodeMirror-foldgutter{width:.9em;}
+.icode .CodeMirror-foldgutter-open,.icode .CodeMirror-foldgutter-folded{color:var(--text-light);cursor:pointer;}
+.icode .CodeMirror-foldgutter-open:after{content:"⌄";}
+.icode .CodeMirror-foldgutter-folded:after{content:"›";}
+.icode .CodeMirror-foldgutter-open:hover,.icode .CodeMirror-foldgutter-folded:hover{color:var(--accent);}
+.icode .CodeMirror-foldmarker{color:var(--accent);text-shadow:none;background:rgba(128,148,180,.14);
+  border-radius:var(--r-btn,5px);padding:0 3px;cursor:pointer;}
+
+/* ---------- 搜索/替换那条 ---------- */
+.icode .CodeMirror-dialog{background:var(--card-bg);color:var(--text);
+  border-color:var(--input-border,var(--card-border));font-family:inherit;font-size:1em;padding:.3em .6em;}
+.icode .CodeMirror-dialog-top{border-bottom:1px solid var(--input-border,var(--card-border));}
+.icode .CodeMirror-dialog-bottom{border-top:1px solid var(--input-border,var(--card-border));}
+.icode .CodeMirror-dialog input{background:var(--input-bg,var(--page-bg));color:var(--text);
+  border:1px solid var(--input-border,var(--card-border));border-radius:var(--r-btn,5px);font-family:inherit;}
+.icode .CodeMirror-dialog button{font-family:inherit;}
+
+/* ---------- 滚动条：跟宿主其余地方一个粗细 ---------- */
+.icode .CodeMirror-vscrollbar::-webkit-scrollbar,.icode .CodeMirror-hscrollbar::-webkit-scrollbar{width:8px;height:8px;}
+
+/* ---------- 语法着色 · 明亮底 ---------- */
+.icode.icode-light .cm-s-default .cm-comment{color:#737b87;font-style:italic;}
+.icode.icode-light .cm-s-default .cm-keyword{color:#0a58ab;font-weight:600;}
+.icode.icode-light .cm-s-default .cm-atom{color:#8a4bb0;}
+.icode.icode-light .cm-s-default .cm-number{color:#8a4bb0;}
+.icode.icode-light .cm-s-default .cm-string,
+.icode.icode-light .cm-s-default .cm-string-2{color:#12782f;}
+.icode.icode-light .cm-s-default .cm-regexp{color:#a8327a;}
+.icode.icode-light .cm-s-default .cm-meta{color:#7a5a00;}
+.icode.icode-light .cm-s-default .cm-variable{color:#0a58ab;}
+.icode.icode-light .cm-s-default .cm-variable-2{color:#2c5f8a;}
+.icode.icode-light .cm-s-default .cm-variable-3,
+.icode.icode-light .cm-s-default .cm-type{color:#7a4bb0;}
+.icode.icode-light .cm-s-default .cm-property{color:#1f4f7a;}
+.icode.icode-light .cm-s-default .cm-operator{color:#4b5158;}
+.icode.icode-light .cm-s-default .cm-qualifier,
+.icode.icode-light .cm-s-default .cm-builtin{color:#8a4bb0;}
+.icode.icode-light .cm-s-default .cm-tag{color:#0a58ab;}
+.icode.icode-light .cm-s-default .cm-attribute{color:#7a5a00;}
+.icode.icode-light .cm-s-default .cm-error{color:#c0392b;text-decoration:underline dotted;}
+
+/* ---------- 语法着色 · 黑暗底 ---------- */
+.icode.icode-dark .cm-s-default .cm-comment{color:#8b93a0;font-style:italic;}
+.icode.icode-dark .cm-s-default .cm-keyword{color:#79b0f2;font-weight:600;}
+.icode.icode-dark .cm-s-default .cm-atom{color:#c89bf0;}
+.icode.icode-dark .cm-s-default .cm-number{color:#c89bf0;}
+.icode.icode-dark .cm-s-default .cm-string,
+.icode.icode-dark .cm-s-default .cm-string-2{color:#7fd08a;}
+.icode.icode-dark .cm-s-default .cm-regexp{color:#f08ab8;}
+.icode.icode-dark .cm-s-default .cm-meta{color:#dcc078;}
+.icode.icode-dark .cm-s-default .cm-variable{color:#9dcdf6;}
+.icode.icode-dark .cm-s-default .cm-variable-2{color:#8fb4cf;}
+.icode.icode-dark .cm-s-default .cm-variable-3,
+.icode.icode-dark .cm-s-default .cm-type{color:#c89bf0;}
+.icode.icode-dark .cm-s-default .cm-property{color:#a6c8e6;}
+.icode.icode-dark .cm-s-default .cm-operator{color:#b7bec9;}
+.icode.icode-dark .cm-s-default .cm-qualifier,
+.icode.icode-dark .cm-s-default .cm-builtin{color:#c89bf0;}
+.icode.icode-dark .cm-s-default .cm-tag{color:#79b0f2;}
+.icode.icode-dark .cm-s-default .cm-attribute{color:#dcc078;}
+.icode.icode-dark .cm-s-default .cm-error{color:#f28b82;text-decoration:underline dotted;}
+
+/* 只读那份（导出源码）：底色略沉一点，一眼知道改不了 */
+.icode.icode-readonly{background:var(--candidate-bg,var(--input-bg));}
+.icode.icode-readonly .CodeMirror{opacity:.94;}
