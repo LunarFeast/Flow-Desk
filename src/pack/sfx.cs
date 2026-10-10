@@ -201,6 +201,16 @@ static class Sfx
     /* ---------- 正事：把尾巴上那一包摊到 dest 里 ---------- */
     class Result { public int Files; public long Bytes; public string Error; }
 
+    /* 外46：本体带着插件一起出门（他 2026-10-10 定）。活的这一格（data\plugins\）是「改代码」直接改的地方 ——
+       目标已经有了同一个名字就不再动它：覆盖升级把用户改过的 main.js 换回出厂那一份就是弄丢他写的东西。
+       要换回出厂有那颗「恢复出厂」（取 data\plugins-factory\）。原版那一格不在这条前缀里（斜杠挡着），照旧覆盖。
+       占用检查、旧的搬备份、新的摊出去三处共用这一颗判定 —— 少管一处就是丢东西。 */
+    static bool KeepUserFile(string dest, Entry it)
+    {
+        if(!it.Name.StartsWith("data/plugins/")) return false;
+        return File.Exists(Path.Combine(dest, it.Name.Replace('/', Path.DirectorySeparatorChar)));
+    }
+
     static Result Extract(string self, Payload pl, string dest, Action<long, long> onProgress)
     {
         Result r = new Result();
@@ -211,6 +221,7 @@ static class Sfx
                 foreach(Entry it in pl.Items)
                 {
                     if(!Clean(it.Name)){ r.Error = "包里有跳出去的路径：" + it.Name; return r; }
+                    if(KeepUserFile(dest, it)) continue;   /* 用户改过的那一份不覆盖 */
                     string to = Path.Combine(dest, it.Name.Replace('/', Path.DirectorySeparatorChar));
                     Directory.CreateDirectory(Path.GetDirectoryName(to));
                     fs.Seek(DataStart(fs, pl.Start + it.LocalOff), SeekOrigin.Begin);
@@ -260,6 +271,7 @@ static class Sfx
         foreach(Entry it in pl.Items)
         {
             string to = Path.Combine(dest, it.Name.Replace('/', Path.DirectorySeparatorChar));
+            if(KeepUserFile(dest, it)) continue;   /* 这一张本来就不打算写，不必问它能不能咬住 */
             if(!File.Exists(to)) continue;
             try{ using(FileStream t = new FileStream(to, FileMode.Open, FileAccess.Write, FileShare.None)){ } }
             catch(IOException){ return it.Name; }
@@ -288,6 +300,7 @@ static class Sfx
         }
         foreach(Entry it in pl.Items)
         {
+            if(KeepUserFile(dest, it)) continue;   /* 也不把他那一份搬进备份 */
             if(it.Name.StartsWith("resources/app/")) continue;
             string from = Path.Combine(dest, it.Name.Replace('/', Path.DirectorySeparatorChar));
             if(!File.Exists(from)) continue;
