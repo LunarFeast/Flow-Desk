@@ -24,7 +24,7 @@ function shAsk(q, yes){
   });
 }
 /* ---------- 词库跟着功能走 ----------
-   哪份词库属于哪个包，写在包的说明书里：bank:{ which, name, file, user }。
+   哪份词库属于哪个包，写在包的插件清单里：bank:{ which, name, file, user }。
      file  = 包里那份出厂底本叫什么（默认 bank.txt）
      user  = 用户改过的那份落在数据层哪儿（<包名>-bank/data.txt），没有就当没改过
    所以名字、路径、底本全都从包上现取，这文件里不硬写任何一家的词库名和目录名。
@@ -40,14 +40,14 @@ function bankPack(which){
   return m ? m.id : '';
 }
 /* 词库各自叫什么：从小提示、编辑器到生成器都读这张表。
-   运行时加载器（sh-load.js）把说明书一家家填进 PACK_META 之后调这一趟，BANK_NAME 才认得全；
+   运行时加载器（sh-load.js）把插件清单一家家填进 PACK_META 之后调这一趟，BANK_NAME 才认得全；
    开机时 PACK_META 还是空的，所以不能再拿一个 IIFE 在装载时就定死。 */
 const BANK_NAME = {};
 function bankSync(){
   if(typeof Packs === 'undefined') return BANK_NAME;
   const list = Packs.list();
   for(const m of list) if(m.bank && m.bank.which) BANK_NAME[m.bank.which] = m.bank.name || m.bank.which;
-  /* 功能说明书那一份还没读到时名单就是空的，别拿假名字顶上去 */
+  /* 功能插件清单那一份还没读到时名单就是空的，别拿假名字顶上去 */
   return BANK_NAME;
 }
 /* 用户在生成器里自建的词库：which 统一是 'b:' + 词库名，明文落在 <词库名>/data.txt，
@@ -68,7 +68,7 @@ const Banks = {
   _base:{}, _ov:{}, _live:{},
   name(which){ return BANK_NAME[which] || String(which).replace(/^b:/, ''); },
   /* 用户那一个明文落在哪儿：先让宿主点名指路（老写法还认），
-     再问这个包的说明书（bank.user），最后按目录名推（自建词库那种）。 */
+     再问这个包的插件清单（bank.user），最后按目录名推（自建词库那种）。 */
   path(which){
     const H2 = H();
     if(H2.file && H2.file[which]) return H2.file[which];
@@ -78,7 +78,7 @@ const Banks = {
   },
   /* 所有词库名：内置在前，自建按名字排；生成器向导和词库编辑器都从这里取 */
   list(){ return Object.values(BANK_NAME).concat(BANK_CUSTOM.slice().sort()); },
-  /* 包自带的词库（说明书上点了 bank 的那几个包）：词库删除那个按钮不碰它们。
+  /* 包自带的词库（插件清单上点了 bank 的那几个包）：词库删除那个按钮不碰它们。
      要连词库一起带走走的是「卸掉插件 + 同步清除数据」那条路，删了包才算删了库。 */
   isBuiltin(name){ return Object.values(BANK_NAME).includes(String(name || '').trim()); },
   /* 名单只读一次；读不到（这份名单还没建起来）就是空表，不影响内置两份 */

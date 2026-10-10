@@ -9,7 +9,7 @@
    其中「条件分支」是唯一只做决定的一条：它自己不开词库、不改值，一块只管自己那几件事，
    谁消费这个决定谁自己去取（改分类 / 换拼法 / 不要哪几格 / 换条数 / 插一行 各在各的位置）。
    产物两份：这一家自己那一格（data\plugins\<id>\）里的 main.js 就是加载器 import 的那一份，
-   同一格的 recipe.json 是这张配方的明文；说明书 manifest.json 新建时补一份，之后跟着配方改名字和简介。
+   同一格的 recipe.json 是这张配方的明文；插件清单 manifest.json 新建时补一份，之后跟着配方改名字和简介。
    写这一格有两条通道：Flow-Desk 程序问主进程，本地开发那台服务器问 /_comp，落的是同一个文件。
    这台机器连不上那一格时（没有主进程也没起开发服务器）配方镜像进宿主 kv，
    页面下次打开照样把它装回来，界面不至于空着。
@@ -1192,7 +1192,7 @@ class GenSheet{
       await genPendingAsk(genScanRecipe(R, R.name || R.id || '这张配方'));
       return;
     }
-    /* 三样都落了盘（main.js + recipe.json + 新建时的说明书）：名单补上这一家，再只重载这一家 */
+    /* 三样都落了盘（main.js + recipe.json + 新建时的插件清单）：名单补上这一家，再只重载这一家 */
     const a = await genApply(R.id);
     toast('已存到这一家自己那一格 · ' + a.msg);
     H().dlg.close();

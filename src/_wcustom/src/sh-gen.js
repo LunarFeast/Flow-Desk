@@ -1577,7 +1577,7 @@ class GenView{
    注册：一张配方 = data\plugins\<id>\ 里的一家插件
    加载器开机按名单 import 这一格里的 main.js（那份就是 export default 这张配方），
    运行时既不 fetch 也不 eval，产物里也不拼它 —— 存进这一格就是新的。
-   向导保存写的就是这一格（main.js + recipe.json，新建时连说明书 manifest.json 一起写）。
+   向导保存写的就是这一格（main.js + recipe.json，新建时连插件清单 manifest.json 一起写）。
    ============================================================ */
 function GEN_BANKS(R){
   const out = [];
@@ -1603,7 +1603,7 @@ const Gen = {
   get(id){ return GEN_DEFS.get(id); },
   list(){ return [...GEN_DEFS.values()]; },
   /* ---------- 完全删除 ----------
-     这一家自己那一格（data\plugins\<id>\ 里的 main.js、recipe.json、说明书整个文件夹）、
+     这一家自己那一格（data\plugins\<id>\ 里的 main.js、recipe.json、插件清单整个文件夹）、
      生成库里它的历次记录、这台机器上的 kv 镜像、名单里它那一格，一样都不留。
      词库问过了才连目录一起删（bank 参数）。 */
   async remove(id, opt){
@@ -1677,7 +1677,7 @@ function genDeleteAsk(R, after){
   const cb = h('input', { type:'checkbox' });
   const box = h('div', { class:'wnw-col' });
   box.appendChild(h('div', { class:'wnw-hint' },
-    '「' + R.name + '」是组件定制做出来的配方组件。删除是完全删除：这一家跑的代码、配方、说明书，'
+    '「' + R.name + '」是组件定制做出来的配方组件。删除是完全删除：这一家跑的代码、配方、插件清单，'
     + '生成库里它的历次记录、插件名单里它那一格，一并抹掉，然后刷新这一页。'));
   if(R.bank && !Banks.isBuiltin(R.bank)){
     const tip = users.length ? '这份词库还有 ' + users.length + ' 个组件在用（' +
@@ -1702,7 +1702,7 @@ function genDeleteAsk(R, after){
 /* ---------- 一张配方落地：写进这一家自己那一格 ----------
    main.js 是加载器 import 的那一份（里面就是 export default 这张配方），
    recipe.json 是同一张配方的明文（想拿 Notepad++ 直接改配方就改它），
-   manifest.json 是说明书 —— 新建时补一份，之后只跟着配方改名字和简介，
+   manifest.json 是插件清单 —— 新建时补一份，之后只跟着配方改名字和简介，
    作者、来源、给谁用这些标记是这一家自己的，向导不替人改。 */
 async function genManifestFor(R){
   let m = {};

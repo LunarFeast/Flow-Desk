@@ -44,7 +44,7 @@ const PackCode = {
     if(A && typeof A.compWrite === 'function') return true;
     return /^https?:$/.test(location.protocol);
   },
-  /* 说明书点名的入口那份：一个包只有一个入口，改代码默认开它 */
+  /* 插件清单点名的入口那份：一个包只有一个入口，改代码默认开它 */
   entry(id){
     const m = PACK_META[String(id)] || {};
     return (m.entry && m.entry[0]) || 'main.js';
@@ -54,7 +54,7 @@ const PackCode = {
   async restore(id, rel){ return await this.call('restore', { id, rel }); },
   /* 这一家有几份原版（决定「恢复出厂」这个按钮摆不摆、点了有没有用） */
   async factory(id){ const r = await this.call('factory', { id }); return (r && r.files) || []; },
-  /* 这一格里有哪几份能改的文本文件：读不到清单就退回「入口 + 说明书 + 配方」那三份 */
+  /* 这一格里有哪几份能改的文本文件：读不到清单就退回「入口 + 插件清单 + 配方」那三份 */
   async files(id){
     const r = await this.call('list', { id });
     if(r && r.ok && Array.isArray(r.files) && r.files.length) return r.files;
@@ -72,7 +72,7 @@ const PackCode = {
   async save(id, rel, text){
     const w = await this.write(id, rel, text);
     if(!w || w.ok === false) return { ok:false, msg:(w && w.msg) || '主进程没回话' };
-    /* 改的是入口那份才真的换代码；改说明书、配方 json 那些要下一轮加载才认（跟加载器说清楚） */
+    /* 改的是入口那份才真的换代码；改插件清单、配方 json 那些要下一轮加载才认（跟加载器说清楚） */
     if(String(rel) !== this.entry(id))
       return { ok:true, reloaded:false, msg:'已存好 · 这一份不是入口，下次开机加载时才认，刷新这一页就用新的' };
     const r = await PackLoader.reload(id);
@@ -192,7 +192,7 @@ const PackCode = {
 
 /* 一个「改代码」：配方开组件定制向导，其余开上面那一份 —— 编辑的都是这一家自己那一格里的文件。
    两个宿主的按钮长相不一样，样式名由宿主给；宿主要在打开前插自己的钩子（FD 卡要接 onSaved）就传 before。
-   这一家这一轮没加载（说明书都不在）时返回 null，宿主那一行不用判。 */
+   这一家这一轮没加载（插件清单都不在）时返回 null，宿主那一行不用判。 */
 /* 戊：这一家不给开「改代码」的口子。名单写在这一处，两个宿主（Flow-Desk 卡标题条那枚铅笔、
    为写停靠标题条那个「改代码」）一起收 —— 别家照旧开得到。
    为什么单收它：音乐遥控器那一屏不是静态样式，它连着后台那座桥和监听插件，改坏了是整条监听断掉，
